@@ -1,5 +1,36 @@
 {
   "dependencies": [
-    "zydis"
+    "abseil",
+    "capnproto",
+    "cpp-httplib",
+    "doctest",
+    "flatbuffers",
+    "fmt",
+    "gflags",
+    "glog",
+    {
+      "name": "grpc",
+      "features": [
+        "codegen"
+      ]
+    },
+    "gtest",
+    "llvm",
+    "lz4",
+    "protobuf",
+    "re2",
+    "re2c",
+    "roaring",
+    "spdlog",
+    "xed",
+    "z3",
+    "zstd",
+    "zydis",
+    {
+      "name": "sqlite3",
+      "features": [
+        "fts5"
+      ]
+    }
   ]
 }
