@@ -1,36 +1,13 @@
 {
   "dependencies": [
-    "abseil",
-    "capnproto",
-    "cpp-httplib",
-    "doctest",
-    "flatbuffers",
-    "fmt",
-    "gflags",
-    "glog",
-    {
-      "name": "grpc",
-      "features": [
-        "codegen"
-      ]
-    },
-    "gtest",
-    "llvm",
-    "lz4",
-    "protobuf",
-    "re2",
-    "re2c",
-    "roaring",
-    "spdlog",
-    "xed",
-    "z3",
-    "zstd",
     "zydis",
+    "remill",
+    "llvm"
+  ],
+  "overrides": [
     {
-      "name": "sqlite3",
-      "features": [
-        "fts5"
-      ]
+      "name": "llvm",
+      "version": "17.0.2"
     }
   ]
 }

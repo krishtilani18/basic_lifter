@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
+set(CMAKE_C_COMPILER "gcc-11")
+set(CMAKE_CXX_COMPILER "/usr/bin/g++-11")
 project(basic_lifter)
 
 include(GNUInstallDirs)
@@ -8,15 +10,11 @@ include("cmake/llvm.cmake")
 # Find `zydis` from vcpkg
 find_package(zydis CONFIG REQUIRED)
 
-# `remill` setup
+# Find `llvm`
 set(_VCPKG_SHARE_DIR "./vcpkg_installed/${VCPKG_TARGET_TRIPLET}/${CMAKE_INSTALL_DATADIR}")
-
-find_package(XED CONFIG REQUIRED HINTS "${_VCPKG_SHARE_DIR}")
-find_package(gflags CONFIG REQUIRED HINTS "${_VCPKG_SHARE_DIR}")
-find_package(glog CONFIG REQUIRED HINTS "${_VCPKG_SHARE_DIR}")
-find_package(Z3 CONFIG REQUIRED)
 find_llvm(llvm "${_VCPKG_SHARE_DIR}")
 
+# Find `remill` itself
 find_package(remill CONFIG REQUIRED)
 
 if(ENABLE_INSTALL)

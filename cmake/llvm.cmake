@@ -7,6 +7,8 @@
 #
 
 function(find_llvm target_name hint_dir)
+  # Differs from original `llvm.cmake` file - "LLVM" is capitalised so its
+  # config file could be found
   find_package(LLVM CONFIG REQUIRED HINTS "${hint_dir}")
   
   add_library("${target_name}" INTERFACE)
