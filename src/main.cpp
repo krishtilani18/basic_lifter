@@ -8,6 +8,10 @@
 
 #include <Zydis/Zydis.h>
 
+/// @brief Extract the bytes from an executable. Currently only supports
+/// ELF binaries.
+/// @param fname the name of the file to be read
+/// @return the file's raw bytes
 std::vector<ZyanU8> get_zydis_bytes(std::string fname) {
   std::ifstream input(fname);
 
@@ -24,6 +28,10 @@ std::vector<ZyanU8> get_zydis_bytes(std::string fname) {
   return zydis_bytes;
 }
 
+/// @brief Fetches all instructions from an ELF file, represented
+/// as a buffer of bytes.
+/// @param buffer the bytes of an ELF file
+/// @return a list of disassembled x86 instructions
 std::vector<ZydisDisassembledInstruction> get_zydis_insts(ZyanU8 *buffer) {
   std::vector<ZydisDisassembledInstruction> instructions;
   ZyanU64 runtime_address = 0x1000;

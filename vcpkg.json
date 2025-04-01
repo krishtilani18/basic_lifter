@@ -1,8 +1,9 @@
 {
   "dependencies": [
-    "zydis",
+    "llvm",
     "remill",
-    "llvm"
+    "zydis",
+    "elfio"
   ],
   "overrides": [
     {

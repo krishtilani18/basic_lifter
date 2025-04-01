@@ -7,6 +7,9 @@ project(basic_lifter)
 include(GNUInstallDirs)
 include("cmake/llvm.cmake")
 
+# Find `elfio` from vcpkg
+find_package(elfio CONFIG REQUIRED)
+
 # Find `zydis` from vcpkg
 find_package(zydis CONFIG REQUIRED)
 
@@ -41,4 +44,4 @@ if(ENABLE_INSTALL)
 endif()
 
 add_executable(main src/main.cpp)
-target_link_libraries(main PRIVATE Zydis::Zydis llvm remill)
+target_link_libraries(main PRIVATE elfio::elfio Zydis::Zydis llvm remill)
