@@ -10,9 +10,6 @@ include("cmake/llvm.cmake")
 # Find `elfio` from vcpkg
 find_package(elfio CONFIG REQUIRED)
 
-# Find `zydis` from vcpkg
-find_package(zydis CONFIG REQUIRED)
-
 # Find `llvm`
 set(_VCPKG_SHARE_DIR "./vcpkg_installed/${VCPKG_TARGET_TRIPLET}/${CMAKE_INSTALL_DATADIR}")
 find_llvm(llvm "${_VCPKG_SHARE_DIR}")
@@ -43,5 +40,10 @@ if(ENABLE_INSTALL)
   )
 endif()
 
-add_executable(main src/main.cpp)
-target_link_libraries(main PRIVATE elfio::elfio Zydis::Zydis llvm remill)
+file(GLOB_RECURSE SOURCES
+    src/*.hpp
+    src/*.cpp
+)
+
+add_executable(main src/main.cpp src/elf.cpp src/elf.hpp)
+target_link_libraries(main PRIVATE elfio::elfio llvm remill)
