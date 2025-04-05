@@ -1,8 +1,8 @@
 {
   "dependencies": [
+    "elfio",
     "llvm",
-    "remill",
-    "elfio"
+    "remill"
   ],
   "overrides": [
     {
