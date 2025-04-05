@@ -15,7 +15,7 @@ vcpkg_from_github(
         0003-cpp-bugfixes.patch
         # Our version of `clang` may look in a later version of g++ than we
         # want, use g++-11 explicitly
-        0004-clang-include-cpp11.patch
+        0004-clang-include-gpp11.patch
 )
 
 set(VCPKG_BUILD_TYPE release)
@@ -27,6 +27,11 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
+vcpkg_copy_tools(
+    TOOL_NAMES remill-lift-17
+    DESTINATION "${CURRENT_PACKAGES_DIR}/tools/remill"
+    AUTO_CLEAN
+)
 
 set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
 
