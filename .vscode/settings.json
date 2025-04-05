@@ -45,6 +45,10 @@
         "numbers": "cpp",
         "ostream": "cpp",
         "streambuf": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "*.inc": "cpp",
+        "chrono": "cpp"
     }
 }

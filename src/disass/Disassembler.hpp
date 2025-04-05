@@ -1,5 +1,6 @@
 #pragma once
 
+#include <llvm/IR/LLVMContext.h>
 #include <remill/Arch/Arch.h>
 #include <remill/Arch/Instruction.h>
 
@@ -12,8 +13,8 @@ public:
 
 class NaiveDisassembler : Disassembler {
 public:
-  NaiveDisassembler();
+  NaiveDisassembler(remill::Arch::ArchPtr &arch): arch(arch) {}
   std::vector<remill::Instruction> Disassemble(X86Function) override;
 private:
-  remill::Arch::ArchPtr arch;
+  remill::Arch::ArchPtr &arch;
 };

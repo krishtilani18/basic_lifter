@@ -2,11 +2,23 @@
 #include <iomanip>
 #include <iostream>
 
+#include <remill/Arch/Name.h>
+#include <remill/BC/Util.h>
+#include <remill/OS/OS.h>
+
 #include "./disass/Disassembler.hpp"
 #include "./elf.hpp"
 
 int main(int argc, char *argv[]) {
-  NaiveDisassembler disass;
+  llvm::LLVMContext context;
+  auto os_name = remill::GetOSName(REMILL_OS);
+  auto arch_name = remill::GetArchName(REMILL_ARCH);
+
+  auto arch = remill::Arch::Get(context, os_name, arch_name);
+  // Necessary line - otherwise module gets dropped
+  auto module = remill::LoadArchSemantics(arch.get());
+
+  auto disass = NaiveDisassembler(arch);
 
   auto funcsOptional = getFunctionLocations(argv[1]);
 

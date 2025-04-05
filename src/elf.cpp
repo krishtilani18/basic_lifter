@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <optional>
 #include <string>
 
@@ -37,6 +38,8 @@ getFunctionLocations(std::string fname) {
                            other);
 
         if (type == ELFIO::STT_FUNC && size != 0) {
+          std::cout << "Size of symbol at " << std::hex << value << ": " << size
+                    << std::dec << std::endl;
           X86FunctionMetadata f_metadata(value, size);
           metadata.push_back(f_metadata);
         }
@@ -52,11 +55,10 @@ getFunctionLocations(std::string fname) {
       const char *text = psec->get_data();
 
       for (auto f_metadata : metadata) {
-        char bytes[f_metadata.second];
-        strncpy(bytes, text + f_metadata.first - offset, f_metadata.second);
+        char *bytes = (char *)malloc(sizeof(char) * f_metadata.second);
+        memcpy(bytes, text + f_metadata.first - offset, f_metadata.second);
 
         X86Function function = {f_metadata.first, f_metadata.second, bytes};
-
         functions.push_back(function);
       }
     }
