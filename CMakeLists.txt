@@ -45,5 +45,5 @@ file(GLOB_RECURSE SOURCES
     src/*.cpp
 )
 
-add_executable(main src/main.cpp src/disass/Disassembler.cpp src/disass/Disassembler.hpp src/elf.cpp src/elf.hpp)
+add_executable(main src/main.cpp src/disass/Disassembler.cpp src/disass/Disassembler.hpp src/elf.cpp src/elf.hpp src/lifter/lifter.hpp src/lifter/lifter.cpp)
 target_link_libraries(main PRIVATE elfio::elfio llvm remill)
