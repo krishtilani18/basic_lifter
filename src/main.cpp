@@ -10,6 +10,16 @@
 #include "./lifter/lifter.hpp"
 
 int main(int argc, char *argv[]) {
+  /// EXTRACT FUNCTION LOCATIONS
+  auto funcsOptional = getFunctionLocations(argv[1]);
+
+  if (!funcsOptional.has_value()) {
+    return 0;
+  }
+
+  auto funcs = funcsOptional.value();
+
+  /// LIFT BYTES INTO X86 INSTRUCTIONS
   llvm::LLVMContext context;
   auto os_name = remill::GetOSName(REMILL_OS);
   auto arch_name = remill::GetArchName(REMILL_ARCH);
@@ -20,29 +30,20 @@ int main(int argc, char *argv[]) {
   // Necessary line - otherwise module gets dropped
   auto module = remill::LoadArchSemantics(arch.get());
 
-  auto disass = NaiveDisassembler(arch);
+  auto disass = NaiveDisassembler(arch.get());
 
-  auto funcsOptional = getFunctionLocations(argv[1]);
+  for (X86Function func : funcs) {
+    std::cout << "Lifted result for function at " << std::hex << func.address
+              << std::dec << ":" << std::endl;
 
-  if (funcsOptional.has_value()) {
-    auto funcs = funcsOptional.value();
+    auto instructions = disass.Disassemble(func);
 
-    for (X86Function func : funcs) {
-      std::cout << "Lifted result for function at " << std::hex << func.address
-                << std::dec << ":" << std::endl;
-
-      auto instructions = disass.Disassemble(func);
-
-
-      
-      for (remill::Instruction instruction : instructions) {
-        std::cout << instruction.Serialize() << std::endl;
-      }
-      // Pass unique_ptr using std::move
-      std::cout << "To LLVM: " << std::endl;
-      LiftInstructionsToLLVM(*module, context, std::move(arch), instructions);
-      
-    
+    for (remill::Instruction instruction : instructions) {
+      std::cout << instruction.Serialize() << std::endl;
     }
+
+    // Pass unique_ptr using std::move
+    std::cout << "To LLVM: " << std::endl;
+    LiftInstructionsToLLVM(*module, context, arch.get(), instructions);
   }
 }

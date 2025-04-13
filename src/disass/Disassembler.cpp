@@ -10,8 +10,6 @@ NaiveDisassembler::Disassemble(X86Function function) {
   uint64_t offset = 0;
 
   while (offset < function.size) {
-    std::cout << "Offset at " << offset << std::endl;
-
     remill::Instruction instruction;
 
     uint64_t max_size;
@@ -25,7 +23,7 @@ NaiveDisassembler::Disassemble(X86Function function) {
 
     bool decoded = this->arch->DecodeInstruction(function.address + offset,
                                                  bytes, instruction,
-                                                 arch->CreateInitialContext());
+                                                 this->arch->CreateInitialContext());
 
     if (decoded) {
       instructions.push_back(instruction);

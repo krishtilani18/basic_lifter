@@ -7,7 +7,7 @@
 void LiftInstructionsToLLVM(
     llvm::Module &module,
     llvm::LLVMContext &context,
-    std::unique_ptr<const remill::Arch> arch,
+    const remill::Arch *arch,
     const std::vector<remill::Instruction> &instructions) {
 
     // Defines a dummy function type and creates an LLVM function
@@ -21,7 +21,7 @@ void LiftInstructionsToLLVM(
 
     // Remill uses to use LLVM helper functions to define instructions behaviour.
     remill::IntrinsicTable intrinsics(&module);
-    auto lifter = std::make_shared<remill::InstructionLifter>(arch.get(), &intrinsics);
+    auto lifter = std::make_shared<remill::InstructionLifter>(arch, &intrinsics);
     auto state_ptr = llvm::UndefValue::get(arch->StateStructType()->getPointerTo());
 
 

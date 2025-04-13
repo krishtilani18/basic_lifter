@@ -11,6 +11,6 @@
 void LiftInstructionsToLLVM(
     llvm::Module &module,
     llvm::LLVMContext &context,
-    std::unique_ptr<const remill::Arch> arch,
+    const remill::Arch *arch,
     const std::vector<remill::Instruction> &instructions);
 #endif // LIFT_INSTRUCTIONS_H
