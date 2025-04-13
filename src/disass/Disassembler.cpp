@@ -4,7 +4,8 @@
 
 #include "Disassembler.hpp"
 
-std::vector<remill::Instruction> NaiveDisassembler::Disassemble(X86Function function) {
+std::vector<remill::Instruction>
+NaiveDisassembler::Disassemble(X86Function function) {
   std::vector<remill::Instruction> instructions;
   uint64_t offset = 0;
 
@@ -13,15 +14,25 @@ std::vector<remill::Instruction> NaiveDisassembler::Disassemble(X86Function func
 
     remill::Instruction instruction;
 
+    uint64_t max_size;
+    if (function.size - offset < MAX_INSTRUCTION_LEN) {
+      max_size = function.size - offset;
+    } else {
+      max_size = MAX_INSTRUCTION_LEN;
+    }
+
+    std::string_view bytes(function.bytes + offset, max_size);
+
     bool decoded = this->arch->DecodeInstruction(function.address + offset,
-                            function.bytes + offset, instruction,
-                            arch->CreateInitialContext());
+                                                 bytes, instruction,
+                                                 arch->CreateInitialContext());
 
     if (decoded) {
       instructions.push_back(instruction);
       offset += instruction.NumBytes();
     } else {
-      std::cout << "Instruction with category " << instruction.category << " found" << std::endl;
+      std::cout << "Instruction with category " << instruction.category
+                << " found" << std::endl;
       break;
     }
   }

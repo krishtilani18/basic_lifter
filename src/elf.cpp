@@ -58,6 +58,13 @@ getFunctionLocations(std::string fname) {
         char *bytes = (char *)malloc(sizeof(char) * f_metadata.second);
         memcpy(bytes, text + f_metadata.first - offset, f_metadata.second);
 
+        std::cout << "Bytes: ";
+        for (int i = 0; i < f_metadata.second; i++) {
+          std::cout << std::hex << std::setfill('0') << std::setw(2) << (int) (bytes[i] & 0xff)
+                    << std::dec << " ";
+        }
+        std::cout << std::endl;
+
         X86Function function = {f_metadata.first, f_metadata.second, bytes};
         functions.push_back(function);
       }
