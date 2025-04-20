@@ -5,12 +5,15 @@
 #include <remill/BC/Util.h>
 #include <remill/OS/OS.h>
 
-#include "./disass/Disassembler.hpp"
-#include "./elf.hpp"
-#include "./lifter/lifter.hpp"
+#include <disass/Disassembler.hpp>
+#include <elf.hpp>
+#include <lifter/lifter.hpp>
 
+// Right now, our lifter extracts code sections from x86 binaries
+// and converts them into chunks of instructions, which can (in future)
+// then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
-  /// EXTRACT FUNCTION LOCATIONS
+  /// === EXTRACT FUNCTION LOCATIONS ===
   auto funcsOptional = getFunctionLocations(argv[1]);
 
   if (!funcsOptional.has_value()) {
@@ -19,7 +22,7 @@ int main(int argc, char *argv[]) {
 
   auto funcs = funcsOptional.value();
 
-  /// LIFT BYTES INTO X86 INSTRUCTIONS
+  /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
   llvm::LLVMContext context;
   auto os_name = remill::GetOSName(REMILL_OS);
   auto arch_name = remill::GetArchName(REMILL_ARCH);
@@ -42,6 +45,7 @@ int main(int argc, char *argv[]) {
       std::cout << instruction.Serialize() << std::endl;
     }
 
+    /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
     // Pass unique_ptr using std::move
     std::cout << "To LLVM: " << std::endl;
     LiftInstructionsToLLVM(*module, context, arch.get(), instructions);

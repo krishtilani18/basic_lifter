@@ -4,7 +4,7 @@
 #include <remill/Arch/Arch.h>
 #include <remill/Arch/Instruction.h>
 
-#include "../elf.hpp"
+#include <elf.hpp>
 
 #define MAX_INSTRUCTION_LEN 15
 

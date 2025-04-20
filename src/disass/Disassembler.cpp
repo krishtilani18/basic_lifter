@@ -2,7 +2,7 @@
 #include <remill/BC/Util.h>
 #include <remill/OS/OS.h>
 
-#include "Disassembler.hpp"
+#include <disass/Disassembler.hpp>
 
 std::vector<remill::Instruction>
 NaiveDisassembler::Disassemble(X86Function function) {

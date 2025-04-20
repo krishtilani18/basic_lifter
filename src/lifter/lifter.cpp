@@ -1,8 +1,9 @@
-#include "lifter.hpp"
 #include <llvm/IR/IRBuilder.h>
 #include <remill/Arch/Arch.h>
 #include <remill/Arch/Instruction.h>
 #include <remill/BC/IntrinsicTable.h>
+
+#include <lifter/lifter.hpp>
 
 void LiftInstructionsToLLVM(
     llvm::Module &module,
