@@ -5,7 +5,7 @@
 #include <remill/BC/Util.h>
 #include <remill/OS/OS.h>
 
-#include <disass/Disassembler.hpp>
+#include <disass/NaiveDisassembler.hpp>
 #include <elf.hpp>
 #include <lifter/lifter.hpp>
 
