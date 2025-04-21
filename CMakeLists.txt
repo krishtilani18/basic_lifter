@@ -44,6 +44,14 @@ file(GLOB_RECURSE SOURCES
     src/*.cpp
 )
 
-add_executable(main src/main.cpp include/disass/Disassembler.hpp src/disass/Disassembler.cpp src/elf.cpp src/lifter/lifter.cpp)
+add_executable(main
+  src/main.cpp
+  include/disass/Disassembler.hpp
+  include/disass/NaiveDisassembler.hpp
+  src/disass/NaiveDisassembler.cpp
+  include/elf.hpp
+  src/elf.cpp
+  include/lifter/lifter.hpp
+  src/lifter/lifter.cpp)
 target_include_directories(main PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(main PRIVATE elfio::elfio llvm remill)
