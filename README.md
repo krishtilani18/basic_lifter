@@ -54,7 +54,7 @@ cmake .. --preset default
 ninja
 ```
 
-To run the lifter, simply do `./main <BINARY_PATH>`.
+To run the lifter, simply do `./basic_lifter <BINARY_PATH>`.
 
 ## Testing
 

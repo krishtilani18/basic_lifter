@@ -7,6 +7,8 @@ project(basic_lifter)
 include(GNUInstallDirs)
 include("cmake/llvm.cmake")
 
+# ================ FIND EXTERNAL LIBRARIES ================
+
 # Find `elfio` from vcpkg
 find_package(elfio CONFIG REQUIRED)
 
@@ -40,10 +42,12 @@ if(ENABLE_INSTALL)
   )
 endif()
 
-file(GLOB_RECURSE SOURCES
-    src/*.hpp
+# ================ SETUP LIFTER EXECUTABLE ================
+
+file(GLOB_RECURSE basic_lifter_SRC CONFIGURE_DEPENDS
     src/*.cpp
 )
 
-add_executable(main src/main.cpp src/disass/Disassembler.cpp src/disass/Disassembler.hpp src/elf.cpp src/elf.hpp)
-target_link_libraries(main PRIVATE elfio::elfio llvm remill)
+add_executable(basic_lifter src/main.cpp ${basic_lifter_SRC})
+target_include_directories(basic_lifter PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
+target_link_libraries(basic_lifter PRIVATE elfio::elfio llvm remill)

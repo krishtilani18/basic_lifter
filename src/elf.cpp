@@ -4,7 +4,7 @@
 
 #include <elfio/elfio.hpp>
 
-#include "elf.hpp"
+#include <elf.hpp>
 
 std::optional<std::vector<X86Function>>
 getFunctionLocations(std::string fname) {
