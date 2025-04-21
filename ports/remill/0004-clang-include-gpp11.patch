@@ -1,0 +1,99 @@
+diff --git a/cmake/BCCompiler.cmake b/cmake/BCCompiler.cmake
+index 2efb669..9eac1ae 100644
+--- a/cmake/BCCompiler.cmake
++++ b/cmake/BCCompiler.cmake
+@@ -189,7 +189,6 @@ function(add_runtime target_name)
+       unset(target_decl)
+     endif()
+ 
+-
+     add_custom_command(OUTPUT "${absolute_output_file_path}"
+       COMMAND "${CMAKE_BC_COMPILER}" ${include_directory_list} ${additional_windows_settings} ${target_decl}  "-DADDRESS_SIZE_BITS=${address_size}" ${definition_list} ${DEFAULT_BC_COMPILER_FLAGS} ${bc_flag_list} ${source_file_option_list} -c "${absolute_source_file_path}" -o "${absolute_output_file_path}"
+       MAIN_DEPENDENCY "${absolute_source_file_path}"
+diff --git a/lib/Arch/AArch32/Runtime/CMakeLists.txt b/lib/Arch/AArch32/Runtime/CMakeLists.txt
+index 884cf2f..636ec33 100644
+--- a/lib/Arch/AArch32/Runtime/CMakeLists.txt
++++ b/lib/Arch/AArch32/Runtime/CMakeLists.txt
+@@ -47,8 +47,8 @@ function(add_runtime_helper target_name little_endian)
+     SOURCES ${ARMRUNTIME_SOURCEFILES}
+     ADDRESS_SIZE 32
+     DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
+-    BCFLAGS "${arch_flags}" "-std=${required_cpp_standard}"
+-    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++    BCFLAGS "--gcc-install-dir=/usr/lib/gcc/i686-linux-gnu/11" "${arch_flags}" "-std=${required_cpp_standard}"
++    INCLUDEDIRECTORIES "/usr/lib/gcc/i686-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+     INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+     ARCH arm
+   )
+diff --git a/lib/Arch/AArch64/Runtime/CMakeLists.txt b/lib/Arch/AArch64/Runtime/CMakeLists.txt
+index 7546071..bfb04aa 100644
+--- a/lib/Arch/AArch64/Runtime/CMakeLists.txt
++++ b/lib/Arch/AArch64/Runtime/CMakeLists.txt
+@@ -39,8 +39,8 @@ function(add_runtime_helper target_name address_bit_size little_endian)
+     SOURCES ${AARCH64RUNTIME_SOURCEFILES}
+     ADDRESS_SIZE ${address_bit_size}
+     DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
+-    BCFLAGS "-std=${required_cpp_standard}"
+-    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++    BCFLAGS "--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/11" "-std=${required_cpp_standard}"
++    INCLUDEDIRECTORIES "/usr/lib/gcc/x86_64-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+     INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+     ARCH aarch64
+ 
+diff --git a/lib/Arch/PPC/Runtime/CMakeLists.txt b/lib/Arch/PPC/Runtime/CMakeLists.txt
+index b9bb184..e8e3985 100644
+--- a/lib/Arch/PPC/Runtime/CMakeLists.txt
++++ b/lib/Arch/PPC/Runtime/CMakeLists.txt
+@@ -34,8 +34,8 @@ add_runtime(ppc
+   SOURCES ${PPCRUNTIME_SOURCEFILES}
+   ADDRESS_SIZE 32
+   DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
+-  BCFLAGS "-std=${required_cpp_standard}"
+-  INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++  BCFLAGS "--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/11" "-std=${required_cpp_standard}"
++  INCLUDEDIRECTORIES "/usr/lib/gcc/x86_64-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+   INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+   ARCH ppc
+ 
+diff --git a/lib/Arch/SPARC64/Runtime/CMakeLists.txt b/lib/Arch/SPARC64/Runtime/CMakeLists.txt
+index a7a2253..ee4cf37 100644
+--- a/lib/Arch/SPARC64/Runtime/CMakeLists.txt
++++ b/lib/Arch/SPARC64/Runtime/CMakeLists.txt
+@@ -43,8 +43,8 @@ function(add_runtime_helper target_name little_endian)
+     SOURCES ${SPARC64RUNTIME_SOURCEFILES}
+     ADDRESS_SIZE 64
+     DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
+-    BCFLAGS "-std=${required_cpp_standard}" "${EXTRA_BC_FLAGS}"
+-    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++    BCFLAGS "--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/11" "-std=${required_cpp_standard}" "${EXTRA_BC_FLAGS}"
++    INCLUDEDIRECTORIES "/usr/lib/gcc/x86_64-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+     INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+     ARCH sparc64
+ 
+diff --git a/lib/Arch/X86/Runtime/CMakeLists.txt b/lib/Arch/X86/Runtime/CMakeLists.txt
+index 170e2e9..30841e5 100644
+--- a/lib/Arch/X86/Runtime/CMakeLists.txt
++++ b/lib/Arch/X86/Runtime/CMakeLists.txt
+@@ -37,16 +37,20 @@ function(add_runtime_helper target_name address_bit_size enable_avx enable_avx51
+ 
+   if (address_bit_size EQUAL 32)
+     set(x86_arch "i386")
++    set(gcc_install_dir "/usr/lib/gcc/i686-linux-gnu/11")
++    set(include_dir "/usr/lib/gcc/i686-linux-gnu/11/include")
+   else()
+     set(x86_arch "x86_64")
++    set(gcc_install_dir "/usr/lib/gcc/x86_64-linux-gnu/11")
++    set(include_dir "/usr/lib/gcc/x86_64-linux-gnu/11/include")
+   endif()
+ 
+   add_runtime(${target_name}
+     SOURCES ${X86RUNTIME_SOURCEFILES}
+     ADDRESS_SIZE ${address_bit_size}
+     DEFINITIONS "HAS_FEATURE_AVX=${enable_avx}" "HAS_FEATURE_AVX512=${enable_avx512}"
+-    BCFLAGS "-std=${required_cpp_standard}"
+-    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++    BCFLAGS "--gcc-install-dir=${gcc_install_dir}" "-std=${required_cpp_standard}"
++    INCLUDEDIRECTORIES "${include_dir}" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+     INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+     ARCH ${x86_arch}
+ 

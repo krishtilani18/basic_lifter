@@ -1,0 +1,19 @@
+{
+  "name": "remill",
+  "version": "5.0.7",
+  "description": "Library for lifting machine code to LLVM bitcode",
+  "homepage": "https://github.com/lifting-bits/remill",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "gflags",
+    "glog",
+    "gtest",
+    "llvm",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    "xed",
+    "z3"
+  ]
+}

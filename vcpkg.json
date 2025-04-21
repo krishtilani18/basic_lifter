@@ -1,0 +1,13 @@
+{
+  "dependencies": [
+    "elfio",
+    "llvm",
+    "remill"
+  ],
+  "overrides": [
+    {
+      "name": "llvm",
+      "version": "17.0.2"
+    }
+  ]
+}

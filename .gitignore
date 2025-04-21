@@ -1,0 +1,10 @@
+# Build directories and binary files
+build/
+install/
+out/
+cmake-build-*/
+.cache/
+vcpkg_installed/
+
+# User specific settings
+CMakeUserPresets.json
