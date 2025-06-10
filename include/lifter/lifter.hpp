@@ -12,5 +12,6 @@ void LiftInstructionsToLLVM(
     llvm::Module &module,
     llvm::LLVMContext &context,
     const remill::Arch *arch,
+    std::string name,
     const std::vector<remill::Instruction> &instructions);
 #endif // LIFT_INSTRUCTIONS_H

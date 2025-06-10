@@ -9,11 +9,12 @@ void LiftInstructionsToLLVM(
     llvm::Module &module,
     llvm::LLVMContext &context,
     const remill::Arch *arch,
+    std::string name,
     const std::vector<remill::Instruction> &instructions) {
 
-    // Defines a dummy function type and creates an LLVM function
-    llvm::FunctionType* func_type = llvm::FunctionType::get(llvm::Type::getVoidTy(context), false);
-    llvm::Function* func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, "lifted_func", module);
+    // Defines a default Remill function
+    llvm::Function* func = arch->DeclareLiftedFunction(name, &module);
+    arch->InitializeEmptyLiftedFunction(func);
 
     // LLVM requires instructions to live in blocks.
     // Needed for LiftIntoBlock.
@@ -34,21 +35,10 @@ void LiftInstructionsToLLVM(
         auto status = lifter->LiftIntoBlock(const_cast<remill::Instruction &>(inst), block, state_ptr);
 
         // valid instruction
-        if (status == remill::kLiftedInstruction) {
-            auto it = block->begin();
-            std::advance(it, old_size); 
-
-            for (; it != block->end(); ++it) {
-                // only prints call instructions
-                if (llvm::isa<llvm::CallInst>(&*it)) {
-                    it->print(llvm::outs());
-                    llvm::outs() << "\n";
-                }
-                // it->print(llvm::outs());
-                // llvm::outs() << "\n";
-            }
-        } else {
+        if (status != remill::kLiftedInstruction) {
             llvm::errs() << "Failed to lift: " << inst.Serialize() << "\n";
         }
     }
+
+    func->print(llvm::outs());
 }

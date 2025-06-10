@@ -40,6 +40,6 @@ int main(int argc, char *argv[]) {
 
     /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
     // Pass unique_ptr using std::move
-    LiftInstructionsToLLVM(*module, context, arch.get(), instructions);
+    LiftInstructionsToLLVM(*module, context, arch.get(), func.name, instructions);
   }
 }
