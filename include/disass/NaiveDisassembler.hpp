@@ -8,7 +8,7 @@
 class NaiveDisassembler : Disassembler {
 public:
     NaiveDisassembler(const remill::Arch *arch) : arch(arch) {}
-    std::vector<remill::Instruction> Disassemble(X86Function) override;
+    std::vector<remill::Instruction> Disassemble(X86Procedure) override;
 
 private:
     const remill::Arch *arch;

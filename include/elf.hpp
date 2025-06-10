@@ -5,7 +5,7 @@
 
 #include <elfio/elfio.hpp>
 
-struct X86FunctionMetadata {
+struct X86ProcedureMetadata {
     std::string name;
     ELFIO::Elf64_Addr address;
     ELFIO::Elf_Xword size;
@@ -13,11 +13,11 @@ struct X86FunctionMetadata {
 
 /// @brief Contains the raw code for an x86 function, which includes
 /// the bytes of the function, how big the function is, and the address
-struct X86Function {
+struct X86Procedure {
     std::string name;
     uint64_t address;
     uint64_t size;
     const char *bytes;
 };
 
-std::optional<std::vector<X86Function>> getFunctionLocations(std::string fname);
+std::optional<std::vector<X86Procedure>> getProcedures(std::string fname);

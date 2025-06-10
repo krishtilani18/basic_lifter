@@ -5,7 +5,7 @@
 #include <disass/NaiveDisassembler.hpp>
 
 std::vector<remill::Instruction>
-NaiveDisassembler::Disassemble(X86Function function) {
+NaiveDisassembler::Disassemble(X86Procedure function) {
     std::vector<remill::Instruction> instructions;
     uint64_t offset = 0;
 

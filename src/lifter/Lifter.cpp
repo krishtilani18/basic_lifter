@@ -6,7 +6,7 @@ llvm::Function *Lifter::Lift(std::string name,
     llvm::Function *func = arch->DeclareLiftedFunction(name, &this->module);
     arch->InitializeEmptyLiftedFunction(func);
 
-        // LLVM requires instructions to live in blocks.
+    // LLVM requires instructions to live in blocks.
     // Needed for LiftIntoBlock.
     llvm::BasicBlock *block = llvm::BasicBlock::Create(this->context, "entry", func);
     llvm::IRBuilder<> builder(block);

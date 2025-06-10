@@ -14,13 +14,13 @@
 // then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
     /// === EXTRACT FUNCTION LOCATIONS ===
-    auto funcsOptional = getFunctionLocations(argv[1]);
+    auto procsOptional = getProcedures(argv[1]);
 
-    if (!funcsOptional.has_value()) {
+    if (!procsOptional.has_value()) {
         return 0;
     }
 
-    auto funcs = funcsOptional.value();
+    auto procs = procsOptional.value();
 
     /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
     llvm::LLVMContext context;
@@ -36,11 +36,11 @@ int main(int argc, char *argv[]) {
     auto disass = NaiveDisassembler(arch.get());
     auto lifter = Lifter(*module, context, arch.get());
 
-    for (X86Function func : funcs) {
-        auto instructions = disass.Disassemble(func);
+    for (X86Procedure proc : procs) {
+        auto instructions = disass.Disassemble(proc);
 
         /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
-        // Pass unique_ptr using std::move
-        lifter.Lift(func.name, instructions);
+        auto func = lifter.Lift(proc.name, instructions);
+        func->print(llvm::outs());
     }
 }

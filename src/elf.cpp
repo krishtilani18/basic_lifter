@@ -6,16 +6,16 @@
 
 #include <elf.hpp>
 
-std::optional<std::vector<X86Function>>
-getFunctionLocations(std::string fname) {
+std::optional<std::vector<X86Procedure>>
+getProcs(std::string fname) {
     ELFIO::elfio reader;
 
     if (!reader.load(fname)) {
         return std::nullopt;
     }
 
-    std::vector<X86FunctionMetadata> metadata;
-    std::vector<X86Function> functions;
+    std::vector<X86ProcedureMetadata> metadata;
+    std::vector<X86Procedure> procs;
     auto sections = reader.sections;
 
     for (int i = 0; i < sections.size(); ++i) {
@@ -38,7 +38,7 @@ getFunctionLocations(std::string fname) {
                                    section_index, other);
 
                 if (type == ELFIO::STT_FUNC && size != 0) {
-                    X86FunctionMetadata f_metadata = {name, value, size};
+                    X86ProcedureMetadata f_metadata = {name, value, size};
                     metadata.push_back(f_metadata);
                 }
             }
@@ -57,12 +57,12 @@ getFunctionLocations(std::string fname) {
                 memcpy(bytes, text + f_metadata.address - offset,
                        f_metadata.size);
 
-                X86Function function = {f_metadata.name, f_metadata.address,
+                X86Procedure proc = {f_metadata.name, f_metadata.address,
                                         f_metadata.size, bytes};
-                functions.push_back(function);
+                procs.push_back(proc);
             }
         }
     }
 
-    return std::optional{functions};
+    return std::optional{procs};
 }
