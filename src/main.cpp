@@ -36,18 +36,10 @@ int main(int argc, char *argv[]) {
   auto disass = NaiveDisassembler(arch.get());
 
   for (X86Function func : funcs) {
-    std::cout << "Lifted result for function at " << std::hex << func.address
-              << std::dec << ":" << std::endl;
-
     auto instructions = disass.Disassemble(func);
-
-    for (remill::Instruction instruction : instructions) {
-      std::cout << instruction.Serialize() << std::endl;
-    }
 
     /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
     // Pass unique_ptr using std::move
-    std::cout << "To LLVM: " << std::endl;
     LiftInstructionsToLLVM(*module, context, arch.get(), instructions);
   }
 }

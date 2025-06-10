@@ -38,8 +38,6 @@ getFunctionLocations(std::string fname) {
                            other);
 
         if (type == ELFIO::STT_FUNC && size != 0) {
-          std::cout << "Size of symbol at " << std::hex << value << ": " << size
-                    << std::dec << std::endl;
           X86FunctionMetadata f_metadata(value, size);
           metadata.push_back(f_metadata);
         }
