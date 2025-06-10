@@ -17,7 +17,7 @@ struct X86Function {
     std::string name;
     uint64_t address;
     uint64_t size;
-    const char* bytes;
+    const char *bytes;
 };
 
 std::optional<std::vector<X86Function>> getFunctionLocations(std::string fname);

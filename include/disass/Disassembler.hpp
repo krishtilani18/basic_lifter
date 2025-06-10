@@ -8,5 +8,5 @@
 
 class Disassembler {
 public:
-  virtual std::vector<remill::Instruction> Disassemble(X86Function) = 0;
+    virtual std::vector<remill::Instruction> Disassemble(X86Function) = 0;
 };
