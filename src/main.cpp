@@ -7,39 +7,40 @@
 
 #include <disass/NaiveDisassembler.hpp>
 #include <elf.hpp>
-#include <lifter/lifter.hpp>
+#include <lifter/Lifter.hpp>
 
 // Right now, our lifter extracts code sections from x86 binaries
 // and converts them into chunks of instructions, which can (in future)
 // then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
-  /// === EXTRACT FUNCTION LOCATIONS ===
-  auto funcsOptional = getFunctionLocations(argv[1]);
+    /// === EXTRACT FUNCTION LOCATIONS ===
+    auto funcsOptional = getFunctionLocations(argv[1]);
 
-  if (!funcsOptional.has_value()) {
-    return 0;
-  }
+    if (!funcsOptional.has_value()) {
+        return 0;
+    }
 
-  auto funcs = funcsOptional.value();
+    auto funcs = funcsOptional.value();
 
-  /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
-  llvm::LLVMContext context;
-  auto os_name = remill::GetOSName(REMILL_OS);
-  auto arch_name = remill::GetArchName(REMILL_ARCH);
+    /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
+    llvm::LLVMContext context;
+    auto os_name = remill::GetOSName(REMILL_OS);
+    auto arch_name = remill::GetArchName(REMILL_ARCH);
 
-  // Creating the arch object as a unique_ptr
-  auto arch = remill::Arch::Get(context, os_name, arch_name);
+    // Creating the arch object as a unique_ptr
+    auto arch = remill::Arch::Get(context, os_name, arch_name);
 
-  // Necessary line - otherwise module gets dropped
-  auto module = remill::LoadArchSemantics(arch.get());
+    // Necessary line - otherwise module gets dropped
+    auto module = remill::LoadArchSemantics(arch.get());
 
-  auto disass = NaiveDisassembler(arch.get());
+    auto disass = NaiveDisassembler(arch.get());
+    auto lifter = Lifter(*module, context, arch.get());
 
-  for (X86Function func : funcs) {
-    auto instructions = disass.Disassemble(func);
+    for (X86Function func : funcs) {
+        auto instructions = disass.Disassemble(func);
 
-    /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
-    // Pass unique_ptr using std::move
-    LiftInstructionsToLLVM(*module, context, arch.get(), func.name, instructions);
-  }
+        /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
+        // Pass unique_ptr using std::move
+        lifter.Lift(func.name, instructions);
+    }
 }
