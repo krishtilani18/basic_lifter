@@ -37,6 +37,10 @@ int main(int argc, char *argv[]) {
     auto lifter = Lifter(*module, context, arch.get());
 
     for (X86Procedure proc : procs) {
+        lifter.AddFunctionName(proc.address, proc.name);
+    }
+
+    for (X86Procedure proc : procs) {
         auto instructions = disass.Disassemble(proc);
 
         /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===

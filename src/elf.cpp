@@ -6,8 +6,7 @@
 
 #include <elf.hpp>
 
-std::optional<std::vector<X86Procedure>>
-getProcs(std::string fname) {
+std::optional<std::vector<X86Procedure>> getProcedures(std::string fname) {
     ELFIO::elfio reader;
 
     if (!reader.load(fname)) {
@@ -56,9 +55,19 @@ getProcs(std::string fname) {
                 char *bytes = (char *)malloc(sizeof(char) * f_metadata.size);
                 memcpy(bytes, text + f_metadata.address - offset,
                        f_metadata.size);
+                
+                /*
+                std::cout << "Proc bytes at address " << f_metadata.address << ":" << std::endl;
+
+                std::cout << std::hex;
+                for (uint64_t i = 0; i < f_metadata.size; i++) {
+                    std::cout << std::setw(2) << std::setfill('0') << (int) (0xff & bytes[i]);
+                }
+                std::cout << std::dec << std::endl;
+                */
 
                 X86Procedure proc = {f_metadata.name, f_metadata.address,
-                                        f_metadata.size, bytes};
+                                     f_metadata.size, bytes};
                 procs.push_back(proc);
             }
         }
