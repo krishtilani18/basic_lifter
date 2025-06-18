@@ -2,6 +2,7 @@
 #include <optional>
 
 #include <lifter/Lifter.hpp>
+#include <lifter/Util.hpp>
 #include <remill/BC/ABI.h>
 
 /// JUMPS
@@ -28,31 +29,47 @@ void Lifter::AddFunctionName(uint64_t address, std::string name) {
 llvm::Function *Lifter::Lift(std::string name,
                              std::vector<remill::Instruction> instructions) {
     // Defines a default Remill function
-    llvm::Function *func = arch->DeclareLiftedFunction(name, &this->module);
+    llvm::Function *func =
+        this->arch->DeclareLiftedFunction(name, &this->module);
     this->arch->InitializeEmptyLiftedFunction(func);
 
     // LLVM requires instructions to live in blocks.
     // Needed for LiftIntoBlock.
-    llvm::BasicBlock *block =
-        llvm::BasicBlock::Create(this->context, "entry", func);
-    llvm::IRBuilder<> builder(block);
+    llvm::BasicBlock *codeBlock =
+        llvm::BasicBlock::Create(this->context, "code", func);
+    llvm::IRBuilder<> builder(codeBlock);
 
     // Remill uses to use LLVM helper functions to define instructions
     // behaviour.
     remill::IntrinsicTable intrinsics(&this->module);
-    auto lifter =
+    auto instLifter =
         std::make_shared<remill::InstructionLifter>(this->arch, &intrinsics);
-    auto state_ptr =
+    auto statePtr =
         llvm::UndefValue::get(this->arch->StateStructType()->getPointerTo());
 
-    // Lift and print each instruction:
-    for (const auto &inst : instructions) {
-        size_t old_size = block->size();
+    // Have register initialisation block branch properly to code block
+    if (auto entryBlock = &(func->front())) {
+        // TODO: keep for now, but see if this assigning to NEXT_PC is necessary
+        // when `InitializeEmptyLiftedFunction` already does this
+        auto pc = NthArgument(func, remill::kPCArgNum);
+        auto [nextPc, _] =
+            this->arch->DefaultLifter(intrinsics)
+                ->LoadRegAddress(entryBlock, statePtr,
+                                 remill::kNextPCVariableName);
 
+        // Initialize `NEXT_PC`
+        (void)new llvm::StoreInst(pc, nextPc, entryBlock);
+
+        // Branch to the first basic block.
+        llvm::BranchInst::Create(codeBlock, entryBlock);
+    }
+
+    // Lift and print each instruction
+    for (const auto &inst : instructions) {
         // uses the instruction, generated IR block and state pointer to
         // generate the corresponding LLVM instruction.
-        auto status = lifter->LiftIntoBlock(
-            const_cast<remill::Instruction &>(inst), block, state_ptr);
+        auto status = instLifter->LiftIntoBlock(
+            const_cast<remill::Instruction &>(inst), codeBlock, statePtr);
 
         // Invalid instruction
         if (status != remill::kLiftedInstruction) {
@@ -60,43 +77,25 @@ llvm::Function *Lifter::Lift(std::string name,
             break;
         }
 
-        // Lift function calls properly
-        if (inst.category == remill::Instruction::kCategoryDirectFunctionCall) {
+        switch (inst.category) {
+        case remill::Instruction::kCategoryNormal:
+        case remill::Instruction::kCategoryNoOp:
+            // Normal operations and no-ops do not require any extra LLVM
+            // manipulation to map functionality
+            break;
+        case remill::Instruction::kCategoryDirectFunctionCall:
             LiftDirectCall(inst, func, builder, intrinsics);
+            break;
+        default:
+            llvm::errs() << "Failed to lift: " << inst.Serialize() << "\n";
         }
     }
+
+    // Return memory pointer to satisfy LLVM basic block requirements
+    auto memoryPtr = FindVarInFunction(func, remill::kMemoryVariableName);
+    builder.CreateRet(memoryPtr.value());
 
     return func;
-}
-
-// Copied from Remill internals, with parts looking in global scope stripped out
-std::optional<llvm::Value *> FindVarInFunction(llvm::Function *func,
-                                               std::string_view name) {
-    llvm::StringRef ref(name.data(), name.size());
-
-    for (auto &inst : func->getEntryBlock()) {
-        if (inst.getName() == ref) {
-            if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(&inst)) {
-                return alloca;
-            }
-            if (auto *gep = llvm::dyn_cast<llvm::GetElementPtrInst>(&inst)) {
-                return gep;
-            }
-        }
-    }
-
-    return std::nullopt;
-}
-
-llvm::Argument *NthArgument(llvm::Function *func, unsigned int index) {
-    auto it = func->arg_begin();
-
-    if (index >= static_cast<size_t>(std::distance(it, func->arg_end()))) {
-        return nullptr;
-    }
-
-    std::advance(it, index);
-    return &*it;
 }
 
 void Lifter::LiftDirectCall(const remill::Instruction &inst,

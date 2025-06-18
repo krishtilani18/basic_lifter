@@ -40,11 +40,15 @@ int main(int argc, char *argv[]) {
         lifter.AddFunctionName(proc.address, proc.name);
     }
 
+    std::vector<llvm::Function *> funcs;
+
     for (X86Procedure proc : procs) {
         auto instructions = disass.Disassemble(proc);
 
         /// === LIFT X86 INSTRUCTIONS INTO LLVM INSTRUCTIONS ===
         auto func = lifter.Lift(proc.name, instructions);
-        func->print(llvm::outs());
+        funcs.push_back(func);
     }
+
+    module->print(llvm::outs(), nullptr);
 }
