@@ -3,7 +3,6 @@
 
 #include <lifter/Lifter.hpp>
 #include <lifter/Util.hpp>
-#include <remill/BC/ABI.h>
 
 /// JUMPS
 // [ ] kCategoryDirectJump
@@ -14,7 +13,7 @@
 // [ ] kCategoryConditionalDirectFunctionCall
 // [ ] kCategoryIndirectFunctionCall
 // [ ] kCategoryConditionalIndirectFunctionCall
-// [ ] kCategoryFunctionReturn
+// [x] kCategoryFunctionReturn
 // [ ] kCategoryConditionalFunctionReturn
 /// BRANCHING
 // [ ] kCategoryConditionalBranch
@@ -29,15 +28,13 @@ void Lifter::AddFunctionName(uint64_t address, std::string name) {
 llvm::Function *Lifter::Lift(std::string name,
                              std::vector<remill::Instruction> instructions) {
     // Defines a default Remill function
-    llvm::Function *func =
-        this->arch->DeclareLiftedFunction(name, &this->module);
-    this->arch->InitializeEmptyLiftedFunction(func);
+    this->func = this->arch->DeclareLiftedFunction(name, &this->module);
+    this->arch->InitializeEmptyLiftedFunction(this->func);
 
     // LLVM requires instructions to live in blocks.
     // Needed for LiftIntoBlock.
-    llvm::BasicBlock *codeBlock =
-        llvm::BasicBlock::Create(this->context, "code", func);
-    llvm::IRBuilder<> builder(codeBlock);
+    this->block = llvm::BasicBlock::Create(this->context, "code", this->func);
+    llvm::IRBuilder<> builder(this->block);
 
     // Remill uses to use LLVM helper functions to define instructions
     // behaviour.
@@ -48,20 +45,19 @@ llvm::Function *Lifter::Lift(std::string name,
         llvm::UndefValue::get(this->arch->StateStructType()->getPointerTo());
 
     // Have register initialisation block branch properly to code block
-    if (auto entryBlock = &(func->front())) {
+    if (auto entryBlock = &(this->func->front())) {
         // TODO: keep for now, but see if this assigning to NEXT_PC is necessary
         // when `InitializeEmptyLiftedFunction` already does this
-        auto pc = NthArgument(func, remill::kPCArgNum);
-        auto [nextPc, _] =
-            this->arch->DefaultLifter(intrinsics)
-                ->LoadRegAddress(entryBlock, statePtr,
-                                 remill::kNextPCVariableName);
+        auto pc = NthArgument(this->func, remill::kPCArgNum);
+        auto [nextPc, _] = this->arch->DefaultLifter(intrinsics)
+                               ->LoadRegAddress(entryBlock, statePtr,
+                                                remill::kNextPCVariableName);
 
         // Initialize `NEXT_PC`
         (void)new llvm::StoreInst(pc, nextPc, entryBlock);
 
         // Branch to the first basic block.
-        llvm::BranchInst::Create(codeBlock, entryBlock);
+        llvm::BranchInst::Create(this->block, entryBlock);
     }
 
     // Lift and print each instruction
@@ -69,7 +65,7 @@ llvm::Function *Lifter::Lift(std::string name,
         // uses the instruction, generated IR block and state pointer to
         // generate the corresponding LLVM instruction.
         auto status = instLifter->LiftIntoBlock(
-            const_cast<remill::Instruction &>(inst), codeBlock, statePtr);
+            const_cast<remill::Instruction &>(inst), this->block, statePtr);
 
         // Invalid instruction
         if (status != remill::kLiftedInstruction) {
@@ -83,54 +79,74 @@ llvm::Function *Lifter::Lift(std::string name,
             // Normal operations and no-ops do not require any extra LLVM
             // manipulation to map functionality
             break;
-        case remill::Instruction::kCategoryDirectFunctionCall:
-            LiftDirectCall(inst, func, builder, intrinsics);
+        case remill::Instruction::kCategoryDirectFunctionCall: {
+            std::string name = this->names[inst.branch_taken_pc];
+            LiftDirectCall(name, intrinsics);
+            break;
+        }
+        case remill::Instruction::kCategoryFunctionReturn:
+            LiftReturn(intrinsics.function_return, intrinsics);
             break;
         default:
             llvm::errs() << "Failed to lift: " << inst.Serialize() << "\n";
         }
     }
 
-    // Return memory pointer to satisfy LLVM basic block requirements
-    auto memoryPtr = FindVarInFunction(func, remill::kMemoryVariableName);
-    builder.CreateRet(memoryPtr.value());
+    // If the block doesn't have a terminator, add a return statement
+    if (!this->block->getTerminator()) {
+        auto memoryPtr = FindVarInFunction(func, remill::kMemoryVariableName);
+        builder.CreateRet(memoryPtr.value());
+    }
 
-    return func;
+    return this->func;
 }
 
-void Lifter::LiftDirectCall(const remill::Instruction &inst,
-                            llvm::Function *func, llvm::IRBuilder<> &builder,
+void Lifter::CallPlaceholder() {
+    llvm::IRBuilder<> builder(this->block);
+
+    auto args = GetArgs();
+
+    llvm::Type *arg_types[remill::kNumBlockArgs];
+    arg_types[remill::kStatePointerArgNum] =
+        args[remill::kStatePointerArgNum]->getType();
+    arg_types[remill::kMemoryPointerArgNum] =
+        args[remill::kMemoryPointerArgNum]->getType();
+    arg_types[remill::kPCArgNum] = args[remill::kPCArgNum]->getType();
+    auto func_type = llvm::FunctionType::get(
+        arg_types[remill::kMemoryPointerArgNum], arg_types, false);
+
+    llvm::FunctionCallee callee(func_type, nullptr);
+    builder.CreateCall(callee, args);
+}
+
+std::array<llvm::Value *, remill::kNumBlockArgs> Lifter::GetArgs() {
+    std::array<llvm::Value *, remill::kNumBlockArgs> args;
+
+    args[remill::kMemoryPointerArgNum] =
+        NthArgument(this->func, remill::kMemoryPointerArgNum);
+    args[remill::kStatePointerArgNum] =
+        NthArgument(this->func, remill::kStatePointerArgNum);
+    args[remill::kPCArgNum] = NthArgument(this->func, remill::kPCArgNum);
+
+    return args;
+}
+
+void Lifter::LiftDirectCall(std::string name,
                             remill::IntrinsicTable &intrinsics) {
-    std::string name = this->names[inst.branch_taken_pc];
+    llvm::IRBuilder<> builder(this->block);
+
     auto target = this->module.getFunction(name);
 
     // Function doesn't exist yet, generate a default call based on Remill ABI
     if (target == nullptr) {
-        std::array<llvm::Value *, remill::kNumBlockArgs> args;
-        args[remill::kMemoryPointerArgNum] =
-            NthArgument(func, remill::kMemoryPointerArgNum);
-        args[remill::kStatePointerArgNum] =
-            NthArgument(func, remill::kStatePointerArgNum);
-        args[remill::kPCArgNum] = NthArgument(func, remill::kPCArgNum);
-
-        llvm::Type *arg_types[remill::kNumBlockArgs];
-        arg_types[remill::kStatePointerArgNum] =
-            args[remill::kStatePointerArgNum]->getType();
-        arg_types[remill::kMemoryPointerArgNum] =
-            args[remill::kMemoryPointerArgNum]->getType();
-        arg_types[remill::kPCArgNum] = args[remill::kPCArgNum]->getType();
-        auto func_type = llvm::FunctionType::get(
-            arg_types[remill::kMemoryPointerArgNum], arg_types, false);
-
-        llvm::FunctionCallee callee(func_type, target);
-        builder.CreateCall(callee, args);
+        CallPlaceholder();
         return;
     }
 
     // Lift Remill ABI function arguments
     std::array<llvm::Value *, remill::kNumBlockArgs> args;
 
-    auto memoryPtr = FindVarInFunction(func, remill::kMemoryVariableName);
+    auto memoryPtr = FindVarInFunction(this->func, remill::kMemoryVariableName);
     auto memoryLoad =
         builder.CreateLoad(intrinsics.mem_ptr_type, memoryPtr.value());
     args[remill::kMemoryPointerArgNum] = memoryLoad;
@@ -138,10 +154,28 @@ void Lifter::LiftDirectCall(const remill::Instruction &inst,
     args[remill::kStatePointerArgNum] =
         NthArgument(func, remill::kStatePointerArgNum);
 
-    auto pcPtr = FindVarInFunction(func, remill::kPCVariableName);
+    auto pcPtr = FindVarInFunction(this->func, remill::kPCVariableName);
     auto pcLoad = builder.CreateLoad(intrinsics.pc_type, pcPtr.value());
     args[remill::kPCArgNum] = pcLoad;
 
     // Make call statement in block
     builder.CreateCall(target, args);
+}
+
+void Lifter::LiftReturn(llvm::Value *dest, remill::IntrinsicTable &intrinsics) {
+    llvm::IRBuilder<> builder(this->block);
+
+    // Set `NEXT_PC` to `PC`
+    auto nextPc = FindVarInFunction(this->func, remill::kNextPCVariableName);
+    auto nextPcLoad = builder.CreateLoad(intrinsics.pc_type, nextPc.value());
+
+    auto pcPtr = FindVarInFunction(this->func, remill::kPCVariableName);
+    (void)new llvm::StoreInst(nextPcLoad, pcPtr.value(),
+                              builder.GetInsertBlock());
+
+    // NOTE: Remill's `TraceLifter` lifts an extra call to `@__remill_function_return`,
+    // which our lifter currently does not do.
+    // TODO: consider implementing our custom intrinsic instead of ignoring call?
+    auto memoryPtr = FindVarInFunction(func, remill::kMemoryVariableName);
+    builder.CreateRet(memoryPtr.value());
 }

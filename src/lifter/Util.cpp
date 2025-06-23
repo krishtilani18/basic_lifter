@@ -7,13 +7,16 @@ std::optional<llvm::Value *> FindVarInFunction(llvm::Function *func,
     llvm::StringRef ref(name.data(), name.size());
 
     for (auto &inst : func->getEntryBlock()) {
-        if (inst.getName() == ref) {
-            if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(&inst)) {
-                return alloca;
-            }
-            if (auto *gep = llvm::dyn_cast<llvm::GetElementPtrInst>(&inst)) {
-                return gep;
-            }
+        if (inst.getName() != ref) {
+            continue;
+        }
+
+        if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(&inst)) {
+            return alloca;
+        }
+        
+        if (auto *gep = llvm::dyn_cast<llvm::GetElementPtrInst>(&inst)) {
+            return gep;
         }
     }
 
