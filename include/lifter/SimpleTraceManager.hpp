@@ -10,6 +10,8 @@ class SimpleTraceManager : public remill::TraceManager {
     SimpleTraceManager(std::vector<X86Function> funcs);
 
   protected:
+    std::string TraceName(uint64_t addr) override;
+
     void SetLiftedTraceDefinition(uint64_t addr,
                                   llvm::Function *lifted_func) override;
 
@@ -20,6 +22,10 @@ class SimpleTraceManager : public remill::TraceManager {
     bool TryReadExecutableByte(uint64_t addr, uint8_t *byte) override;
 
   public:
+    // Metadata
     Memory memory;
+    std::unordered_map<uint64_t, std::string> names;
+
+    // Lifted traces
     std::unordered_map<uint64_t, llvm::Function *> traces;
 };

@@ -5,10 +5,16 @@ SimpleTraceManager::SimpleTraceManager(std::vector<X86Function> funcs) {
     this->memory = Memory();
 
     for (X86Function func : funcs) {
+        this->names[func.address] = func.name;
+        
         for (uint64_t i = 0; i < func.size; i++) {
             this->memory[func.address + i] = func.bytes[i];
         }
     }
+}
+
+std::string SimpleTraceManager::TraceName(uint64_t addr) {
+    return this->names[addr];
 }
 
 // Called when we have lifted, i.e. defined the contents, of a new trace.

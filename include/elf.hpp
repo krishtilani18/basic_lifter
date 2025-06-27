@@ -5,11 +5,16 @@
 
 #include <elfio/elfio.hpp>
 
-typedef std::pair<ELFIO::Elf64_Addr, ELFIO::Elf_Xword> X86FunctionMetadata;
+struct X86FunctionMetadata {
+    std::string name;
+    uint64_t address;
+    uint64_t size;
+};
 
 /// @brief Contains the raw code for an x86 function, which includes
 /// the bytes of the function, how big the function is, and the address
 struct X86Function {
+    std::string name;
     uint64_t address;
     uint64_t size;
     const char* bytes;

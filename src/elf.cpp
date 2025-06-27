@@ -38,7 +38,7 @@ getFunctionLocations(std::string fname) {
                                    section_index, other);
 
                 if (type == ELFIO::STT_FUNC && size != 0) {
-                    X86FunctionMetadata f_metadata(value, size);
+                    X86FunctionMetadata f_metadata{name, value, size};
                     metadata.push_back(f_metadata);
                 }
             }
@@ -53,12 +53,12 @@ getFunctionLocations(std::string fname) {
             const char *text = psec->get_data();
 
             for (auto f_metadata : metadata) {
-                char *bytes = (char *)malloc(sizeof(char) * f_metadata.second);
-                memcpy(bytes, text + f_metadata.first - offset,
-                       f_metadata.second);
+                char *bytes = (char *)malloc(sizeof(char) * f_metadata.size);
+                memcpy(bytes, text + f_metadata.address - offset,
+                       f_metadata.size);
 
-                X86Function function = {f_metadata.first, f_metadata.second,
-                                        bytes};
+                X86Function function = {f_metadata.name, f_metadata.address,
+                                        f_metadata.size, bytes};
                 functions.push_back(function);
             }
         }
