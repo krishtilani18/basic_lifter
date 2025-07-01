@@ -1,7 +1,7 @@
 #pragma once
 
-#include <optional>
 #include <string>
+#include <vector>
 
 #include <elfio/elfio.hpp>
 
@@ -17,7 +17,16 @@ struct X86Function {
     std::string name;
     uint64_t address;
     uint64_t size;
-    const char* bytes;
+    const char *bytes;
 };
 
-std::optional<std::vector<X86Function>> getFunctionLocations(std::string fname);
+class X86Reader {
+  public:
+    X86Reader(ELFIO::elfio &_reader) : reader(_reader) {}
+
+    ELFIO::Elf64_Addr GetEntry();
+    std::vector<X86Function> GetFunctions();
+
+  private:
+    ELFIO::elfio &reader;
+};

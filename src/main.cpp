@@ -9,21 +9,22 @@
 #include <remill/OS/OS.h>
 #include <unordered_map>
 
-#include <elf.hpp>
 #include <lifter/SimpleTraceManager.hpp>
+#include <reader/X86Reader.hpp>
 
 // Right now, our lifter extracts code sections from x86 binaries
 // and converts them into chunks of instructions, which can (in future)
 // then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
     /// === EXTRACT FUNCTION LOCATIONS ===
-    auto funcsOptional = getFunctionLocations(argv[1]);
+    ELFIO::elfio elfReader;
 
-    if (!funcsOptional.has_value()) {
-        return 0;
+    if (!elfReader.load(argv[1])) {
+        return 1;
     }
 
-    auto funcs = funcsOptional.value();
+    X86Reader reader(elfReader);
+    auto funcs = reader.GetFunctions();
 
     /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
     llvm::LLVMContext context;

@@ -1,29 +1,20 @@
-#include <iomanip>
-#include <optional>
-#include <string>
+#include <reader/X86Reader.hpp>
 
-#include <elfio/elfio.hpp>
+ELFIO::Elf64_Addr X86Reader::GetEntry() {
+    return this->reader.get_entry();
+}
 
-#include <elf.hpp>
-
-std::optional<std::vector<X86Function>>
-getFunctionLocations(std::string fname) {
-    ELFIO::elfio reader;
-
-    if (!reader.load(fname)) {
-        return std::nullopt;
-    }
-
+std::vector<X86Function> X86Reader::GetFunctions() {
     std::vector<X86FunctionMetadata> metadata;
     std::vector<X86Function> functions;
-    auto sections = reader.sections;
+    auto sections = this->reader.sections;
 
     for (int i = 0; i < sections.size(); ++i) {
         ELFIO::section *psec = sections[i];
 
         // Find symbol table (always before code)
         if (psec->get_type() == ELFIO::SHT_SYMTAB) {
-            const ELFIO::symbol_section_accessor symbols(reader, psec);
+            const ELFIO::symbol_section_accessor symbols(this->reader, psec);
 
             for (unsigned int j = 0; j < symbols.get_symbols_num(); ++j) {
                 std::string name;
@@ -64,5 +55,5 @@ getFunctionLocations(std::string fname) {
         }
     }
 
-    return std::optional{functions};
+    return functions;
 }
