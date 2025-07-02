@@ -1,3 +1,4 @@
+#include <array>
 #include <inttypes.h>
 #include <iomanip>
 #include <iostream>
@@ -16,7 +17,7 @@
 // and converts them into chunks of instructions, which can (in future)
 // then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
-    /// === EXTRACT FUNCTION LOCATIONS ===
+    /// === EXTRACT PROCEDURE LOCATIONS ===
     ELFIO::elfio elfReader;
 
     if (!elfReader.load(argv[1])) {
@@ -24,9 +25,9 @@ int main(int argc, char *argv[]) {
     }
 
     X86Reader reader(elfReader);
-    auto funcs = reader.GetFunctions();
+    auto procs = reader.GetProcedures();
 
-    /// === LIFT BYTES INTO X86 INSTRUCTIONS ===
+    /// === LIFT X86 PROCEDURES INTO LLVM IR ===
     llvm::LLVMContext context;
     auto os_name = remill::GetOSName(REMILL_OS);
     auto arch_name = remill::GetArchName(REMILL_ARCH);
@@ -38,12 +39,12 @@ int main(int argc, char *argv[]) {
     auto module = remill::LoadArchSemantics(arch.get());
 
     // Initialise lifter
-    SimpleTraceManager manager(funcs);
+    SimpleTraceManager manager(procs);
     auto lifter = remill::TraceLifter(arch.get(), manager);
 
     // Lift the program, using the function info we got from elf.hpp
     // as an entry point
-    for (X86Function func : funcs) {
+    for (X86Procedure func : procs) {
         lifter.Lift(func.address);
     }
 
@@ -52,13 +53,55 @@ int main(int argc, char *argv[]) {
     remill::OptimizeModule(arch, module, manager.traces, guide);
 
     // Move lifted functions into new module
-    llvm::Module dest_module("lifted_code", context);
-    arch->PrepareModuleDataLayout(&dest_module);
+    llvm::Module destModule("lifted_code", context);
+    arch->PrepareModuleDataLayout(&destModule);
+
+    // Create main function
+    auto voidType = llvm::Type::getVoidTy(context);
+    const auto mainFuncType =
+        llvm::FunctionType::get(voidType, false);
+
+    auto mainFunc = llvm::Function::Create(
+        mainFuncType, llvm::GlobalValue::ExternalLinkage, "main", destModule);
 
     for (auto trace : manager.traces) {
-        remill::MoveFunctionIntoModule(trace.second, &dest_module);
+        remill::MoveFunctionIntoModule(trace.second, &destModule);
     }
 
-    // Output lifted result
-    dest_module.print(llvm::outs(), nullptr);
+    /// === CALL ENTRY POINT ===
+
+    // Create global state struct, initialise to 0
+    auto stateType = arch->StateStructType();
+    auto stateInit = llvm::ConstantAggregateZero::get(stateType);
+
+    const auto statePtr = new llvm::GlobalVariable(
+        destModule, stateType, false, llvm::GlobalValue::ExternalLinkage,
+        stateInit, "LIFTED.STATE", nullptr,
+        llvm::GlobalValue::InitialExecTLSModel);
+
+    // Create memory pointer
+    auto memoryType = arch->MemoryPointerType();
+    auto memoryPtr = llvm::Constant::getNullValue(memoryType);
+
+    // Create program counter
+    auto entryPoint = reader.GetEntry();
+
+    auto wordType = llvm::Type::getIntNTy(
+        context, static_cast<unsigned>(arch->address_size));
+    auto pc = llvm::ConstantInt::get(wordType, entryPoint);
+
+    // Have main function directly call entry point
+    llvm::IRBuilder<> ir(llvm::BasicBlock::Create(context, "", mainFunc));
+
+    std::array<llvm::Value *, remill::kNumBlockArgs> args;
+    args[remill::kStatePointerArgNum] = statePtr;
+    args[remill::kPCArgNum] = pc;
+    args[remill::kMemoryPointerArgNum] = memoryPtr;
+
+    auto entryFunc = manager.GetLiftedTraceDefinition(entryPoint);
+    ir.CreateCall(entryFunc, args);
+    ir.CreateRetVoid();
+
+    /// === OUTPUT MODULE ===
+    destModule.print(llvm::outs(), nullptr);
 }

@@ -1,10 +1,9 @@
-#include <elf.hpp>
 #include <lifter/SimpleTraceManager.hpp>
 
-SimpleTraceManager::SimpleTraceManager(std::vector<X86Function> funcs) {
+SimpleTraceManager::SimpleTraceManager(std::vector<X86Procedure> funcs) {
     this->memory = Memory();
 
-    for (X86Function func : funcs) {
+    for (X86Procedure func : funcs) {
         this->names[func.address] = func.name;
         
         for (uint64_t i = 0; i < func.size; i++) {
@@ -14,7 +13,7 @@ SimpleTraceManager::SimpleTraceManager(std::vector<X86Function> funcs) {
 }
 
 std::string SimpleTraceManager::TraceName(uint64_t addr) {
-    return this->names[addr];
+    return "LIFTED." + this->names[addr];
 }
 
 // Called when we have lifted, i.e. defined the contents, of a new trace.

@@ -4,9 +4,9 @@ ELFIO::Elf64_Addr X86Reader::GetEntry() {
     return this->reader.get_entry();
 }
 
-std::vector<X86Function> X86Reader::GetFunctions() {
-    std::vector<X86FunctionMetadata> metadata;
-    std::vector<X86Function> functions;
+std::vector<X86Procedure> X86Reader::GetProcedures() {
+    std::vector<X86ProcedureMetadata> metadata;
+    std::vector<X86Procedure> functions;
     auto sections = this->reader.sections;
 
     for (int i = 0; i < sections.size(); ++i) {
@@ -29,7 +29,7 @@ std::vector<X86Function> X86Reader::GetFunctions() {
                                    section_index, other);
 
                 if (type == ELFIO::STT_FUNC && size != 0) {
-                    X86FunctionMetadata f_metadata{name, value, size};
+                    X86ProcedureMetadata f_metadata{name, value, size};
                     metadata.push_back(f_metadata);
                 }
             }
@@ -48,7 +48,7 @@ std::vector<X86Function> X86Reader::GetFunctions() {
                 memcpy(bytes, text + f_metadata.address - offset,
                        f_metadata.size);
 
-                X86Function function = {f_metadata.name, f_metadata.address,
+                X86Procedure function = {f_metadata.name, f_metadata.address,
                                         f_metadata.size, bytes};
                 functions.push_back(function);
             }
