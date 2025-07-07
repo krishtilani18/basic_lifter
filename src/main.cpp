@@ -56,19 +56,19 @@ int main(int argc, char *argv[]) {
     llvm::Module destModule("lifted_code", context);
     arch->PrepareModuleDataLayout(&destModule);
 
-    // Create main function
-    auto voidType = llvm::Type::getVoidTy(context);
-    const auto mainFuncType =
-        llvm::FunctionType::get(voidType, false);
-
-    auto mainFunc = llvm::Function::Create(
-        mainFuncType, llvm::GlobalValue::ExternalLinkage, "main", destModule);
-
     for (auto trace : manager.traces) {
         remill::MoveFunctionIntoModule(trace.second, &destModule);
     }
 
     /// === CALL ENTRY POINT ===
+
+    // Create main function
+    auto i32Type = llvm::Type::getInt32Ty(context);
+    const auto mainFuncType =
+        llvm::FunctionType::get(i32Type, false);
+
+    auto mainFunc = llvm::Function::Create(
+        mainFuncType, llvm::GlobalValue::ExternalLinkage, "main", destModule);
 
     // Create global state struct, initialise to 0
     auto stateType = arch->StateStructType();
@@ -100,7 +100,11 @@ int main(int argc, char *argv[]) {
 
     auto entryFunc = manager.GetLiftedTraceDefinition(entryPoint);
     ir.CreateCall(entryFunc, args);
-    ir.CreateRetVoid();
+
+    // Assembly return values are contained in `rax`, return value from there
+    auto remillRax = arch->RegisterByName("RAX");
+    auto rax = remillRax->AddressOf(statePtr, ir);
+    ir.CreateRet(rax);
 
     /// === OUTPUT MODULE ===
     destModule.print(llvm::outs(), nullptr);
