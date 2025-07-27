@@ -104,7 +104,9 @@ int main(int argc, char *argv[]) {
     // Assembly return values are contained in `rax`, return value from there
     auto remillRax = arch->RegisterByName("RAX");
     auto rax = remillRax->AddressOf(statePtr, ir);
-    ir.CreateRet(rax);
+
+    auto loadInst = ir.CreateLoad(i32Type, rax);
+    ir.CreateRet(loadInst);
 
     /// === OUTPUT MODULE ===
     destModule.print(llvm::outs(), nullptr);
