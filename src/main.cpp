@@ -64,8 +64,7 @@ int main(int argc, char *argv[]) {
 
     // Create main function
     auto i32Type = llvm::Type::getInt32Ty(context);
-    const auto mainFuncType =
-        llvm::FunctionType::get(i32Type, false);
+    const auto mainFuncType = llvm::FunctionType::get(i32Type, false);
 
     auto mainFunc = llvm::Function::Create(
         mainFuncType, llvm::GlobalValue::ExternalLinkage, "main", destModule);
@@ -79,10 +78,6 @@ int main(int argc, char *argv[]) {
         stateInit, "LIFTED.STATE", nullptr,
         llvm::GlobalValue::InitialExecTLSModel);
 
-    // Create memory pointer
-    auto memoryType = arch->MemoryPointerType();
-    auto memoryPtr = llvm::Constant::getNullValue(memoryType);
-
     // Create program counter
     auto entryPoint = reader.GetEntry();
 
@@ -90,9 +85,19 @@ int main(int argc, char *argv[]) {
         context, static_cast<unsigned>(arch->address_size));
     auto pc = llvm::ConstantInt::get(wordType, entryPoint);
 
-    // Have main function directly call entry point
+    // === CONSTRUCT MAIN FUNCTION ===
     llvm::IRBuilder<> ir(llvm::BasicBlock::Create(context, "", mainFunc));
 
+    // Initialise memory map
+    auto memoryType = arch->MemoryPointerType();
+
+    auto initMemoryFunc = destModule.getOrInsertFunction(
+        "__lifter_init_memory",
+        llvm::FunctionType::get(memoryType, memoryType, false));
+
+    auto memoryPtr = ir.CreateCall(initMemoryFunc);
+
+    // Call 
     std::array<llvm::Value *, remill::kNumBlockArgs> args;
     args[remill::kStatePointerArgNum] = statePtr;
     args[remill::kPCArgNum] = pc;
@@ -106,6 +111,17 @@ int main(int argc, char *argv[]) {
     auto rax = remillRax->AddressOf(statePtr, ir);
 
     auto loadInst = ir.CreateLoad(i32Type, rax);
+
+    // Make sure to destroy pointer, preventing memory leak
+    auto freeMemoryFunc = destModule.getOrInsertFunction(
+        "__lifter_free_memory",
+        llvm::FunctionType::get(llvm::Type::getVoidTy(context), memoryType,
+                                false));
+
+    std::array<llvm::Value *, 1> freeMemoryArgs;
+    freeMemoryArgs[0] = memoryPtr;
+    ir.CreateCall(freeMemoryFunc, freeMemoryArgs);
+
     ir.CreateRet(loadInst);
 
     /// === OUTPUT MODULE ===
