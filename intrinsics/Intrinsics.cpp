@@ -15,9 +15,9 @@ extern "C" Memory *__lifter_init_memory() {
 extern "C" void __lifter_free_memory(Memory *memory) { delete memory; }
 
 extern "C" uint32_t __remill_read_memory_32(Memory *memory, addr_t addr) {
-    uint32_t result;
+    uint32_t result = 0;
 
-    for (uint32_t offset = 0; offset < 4; offset++) {
+    for (size_t offset = 0; offset < 4; offset++) {
         auto byteIt = memory->find(addr + offset);
 
         if (byteIt == memory->end()) {
@@ -35,9 +35,9 @@ extern "C" uint32_t __remill_read_memory_32(Memory *memory, addr_t addr) {
 }
 
 extern "C" uint64_t __remill_read_memory_64(Memory *memory, addr_t addr) {
-    uint64_t result;
+    uint64_t result = 0;
 
-    for (uint64_t offset = 0; offset < 8; offset++) {
+    for (size_t offset = 0; offset < 8; offset++) {
         auto byteIt = memory->find(addr + offset);
 
         if (byteIt == memory->end()) {
@@ -56,11 +56,11 @@ extern "C" uint64_t __remill_read_memory_64(Memory *memory, addr_t addr) {
 
 extern "C" Memory *__remill_write_memory_32(Memory *memory, addr_t addr,
                                             uint32_t val) {
-    for (uint64_t offset = 0; offset < 4; offset++) {
+    for (size_t offset = 0; offset < 4; offset++) {
         size_t shift = (3 - offset) * 8;
         uint32_t shifted = val >> shift;
 
-        memory->emplace(addr + offset, (uint8_t)shifted & 0xff);
+        (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
     }
 
     return memory;
@@ -68,11 +68,11 @@ extern "C" Memory *__remill_write_memory_32(Memory *memory, addr_t addr,
 
 extern "C" Memory *__remill_write_memory_64(Memory *memory, addr_t addr,
                                             uint64_t val) {
-    for (uint64_t offset = 0; offset < 8; offset++) {
+    for (size_t offset = 0; offset < 8; offset++) {
         size_t shift = (7 - offset) * 8;
         uint64_t shifted = val >> shift;
 
-        memory->emplace(addr + offset, (uint8_t)shifted & 0xff);
+        (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
     }
 
     return memory;
