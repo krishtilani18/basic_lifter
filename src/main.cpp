@@ -61,9 +61,10 @@ int main(int argc, char *argv[]) {
     }
 
     /// === CALL ENTRY POINT ===
+    auto i32Type = llvm::Type::getInt32Ty(context);
+    auto i64Type = llvm::Type::getInt64Ty(context);
 
     // Create main function
-    auto i32Type = llvm::Type::getInt32Ty(context);
     const auto mainFuncType = llvm::FunctionType::get(i32Type, false);
 
     auto mainFunc = llvm::Function::Create(
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
 
     auto initMemoryFunc = destModule.getOrInsertFunction(
         "__lifter_init_memory",
-        llvm::FunctionType::get(memoryType, memoryType, false));
+        llvm::FunctionType::get(memoryType, false));
 
     auto memoryPtr = ir.CreateCall(initMemoryFunc);
 
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
     auto remillRax = arch->RegisterByName("RAX");
     auto rax = remillRax->AddressOf(statePtr, ir);
 
-    auto loadInst = ir.CreateLoad(i32Type, rax);
+    auto loadInst = ir.CreateLoad(i64Type, rax);
 
     // Make sure to destroy pointer, preventing memory leak
     auto freeMemoryFunc = destModule.getOrInsertFunction(
