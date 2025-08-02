@@ -14,16 +14,21 @@ llc-18 ll/custom.ll
 # 3. Assemble your x86 code (by default a `.s` file with the same name in the same folder) into
 #    an x86 object file.
 as ll/custom.s -o obj/custom.o
+
+# 4. If you have multiple functions, you will need to change the program's entry point to `main`.
+ld obj/custom.o -e main -o obj/custom_main.o
+rm obj/custom.o
+mv obj/custom_main.o obj/custom.o
 ```
 
 To lift and run the generated object file, go to the `build` folder (where your `./basic_lifter` should be) and run the following commands:
 ```bash
-# 4. If you haven't already, compile the intrinsics file into LLVM IR.
+# 5. If you haven't already, compile the intrinsics file into LLVM IR.
 clang++ -c -S -emit-llvm ../intrinsics/Intrinsics.cpp -o Intrinsics.ll
 
-# 5. Run the lifter on the generated object file.
+# 6. Run the lifter on the generated object file.
 ./basic_lifter ../example/obj/custom.o > custom.ll
 
-# 6. Link the IR files together into one binary.
+# 7. Link the IR files together into one binary.
 clang++ -o custom custom.ll Intrinsics.ll
 ```

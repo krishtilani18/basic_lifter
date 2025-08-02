@@ -96,6 +96,14 @@ extern "C" bool __remill_flag_computation_overflow(bool result, ...) {
 
 extern "C" bool __remill_compare_neq(bool result) { return result; }
 
+extern "C" bool __remill_compare_uge(bool result) { return result; }
+
+extern "C" bool __remill_compare_sle(bool result) { return result; }
+
+extern "C" bool __remill_compare_sgt(bool result) { return result; }
+
+extern "C" bool __remill_compare_eq(bool result) { return result; }
+
 extern "C" uint8_t __remill_undefined_8(void) { return 0; }
 
 extern "C" Memory *__remill_error(State &state, addr_t addr, Memory *memory) {
