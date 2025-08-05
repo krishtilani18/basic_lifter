@@ -34,18 +34,22 @@ int main(int argc, char *argv[]) {
 
     // Creating the arch object as a unique_ptr
     auto arch = remill::Arch::Get(context, os_name, arch_name);
-
-    // Necessary line - otherwise module gets dropped
     auto module = remill::LoadArchSemantics(arch.get());
 
+    // Declare empty functions in module first, which the lifter
+    // can see (for recursive functions)
+    for (X86Procedure proc : procs) {
+        arch->DeclareLiftedFunction("LIFTED." + proc.name, module.get());
+    }
+
     // Initialise lifter
-    SimpleTraceManager manager(procs);
+    SimpleTraceManager manager(procs, module);
     auto lifter = remill::TraceLifter(arch.get(), manager);
 
     // Lift the program, using the function info we got from elf.hpp
     // as an entry point
-    for (X86Procedure func : procs) {
-        lifter.Lift(func.address);
+    for (X86Procedure proc : procs) {
+        lifter.Lift(proc.address);
     }
 
     // Optimize the functions we lifted
@@ -61,11 +65,11 @@ int main(int argc, char *argv[]) {
     }
 
     /// === CALL ENTRY POINT ===
+    auto i32Type = llvm::Type::getInt32Ty(context);
+    auto i64Type = llvm::Type::getInt64Ty(context);
 
     // Create main function
-    auto i32Type = llvm::Type::getInt32Ty(context);
-    const auto mainFuncType =
-        llvm::FunctionType::get(i32Type, false);
+    const auto mainFuncType = llvm::FunctionType::get(i32Type, false);
 
     auto mainFunc = llvm::Function::Create(
         mainFuncType, llvm::GlobalValue::ExternalLinkage, "main", destModule);
@@ -79,10 +83,6 @@ int main(int argc, char *argv[]) {
         stateInit, "LIFTED.STATE", nullptr,
         llvm::GlobalValue::InitialExecTLSModel);
 
-    // Create memory pointer
-    auto memoryType = arch->MemoryPointerType();
-    auto memoryPtr = llvm::Constant::getNullValue(memoryType);
-
     // Create program counter
     auto entryPoint = reader.GetEntry();
 
@@ -90,9 +90,19 @@ int main(int argc, char *argv[]) {
         context, static_cast<unsigned>(arch->address_size));
     auto pc = llvm::ConstantInt::get(wordType, entryPoint);
 
-    // Have main function directly call entry point
+    // === CONSTRUCT MAIN FUNCTION ===
     llvm::IRBuilder<> ir(llvm::BasicBlock::Create(context, "", mainFunc));
 
+    // Initialise memory map
+    auto memoryType = arch->MemoryPointerType();
+
+    auto initMemoryFunc = destModule.getOrInsertFunction(
+        "__lifter_init_memory",
+        llvm::FunctionType::get(memoryType, false));
+
+    auto memoryPtr = ir.CreateCall(initMemoryFunc);
+
+    // Call 
     std::array<llvm::Value *, remill::kNumBlockArgs> args;
     args[remill::kStatePointerArgNum] = statePtr;
     args[remill::kPCArgNum] = pc;
@@ -102,10 +112,21 @@ int main(int argc, char *argv[]) {
     ir.CreateCall(entryFunc, args);
 
     // Assembly return values are contained in `rax`, return value from there
-    auto remillRax = arch->RegisterByName("RAX");
-    auto rax = remillRax->AddressOf(statePtr, ir);
+    auto remillEax = arch->RegisterByName("EAX");
+    auto eax = remillEax->AddressOf(statePtr, ir);
 
-    auto loadInst = ir.CreateLoad(i32Type, rax);
+    auto loadInst = ir.CreateLoad(i32Type, eax);
+
+    // Make sure to destroy pointer, preventing memory leak
+    auto freeMemoryFunc = destModule.getOrInsertFunction(
+        "__lifter_free_memory",
+        llvm::FunctionType::get(llvm::Type::getVoidTy(context), memoryType,
+                                false));
+
+    std::array<llvm::Value *, 1> freeMemoryArgs;
+    freeMemoryArgs[0] = memoryPtr;
+    ir.CreateCall(freeMemoryFunc, freeMemoryArgs);
+
     ir.CreateRet(loadInst);
 
     /// === OUTPUT MODULE ===

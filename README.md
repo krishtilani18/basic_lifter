@@ -20,9 +20,11 @@ The following are important folders/files within the project:
 ## Requirements
 
 Make sure the following are installed before building:
-- GCC/G++ 11 - read [this guide](https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-20-04-lts-focal-fossa) and make sure to have GCC/G++ 11 set as the desired version.
-- [`vcpkg`](https://vcpkg.io/) - read [this guide](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash) for installation instructions.
+- GCC/G++ 11
+- [`vcpkg`](https://vcpkg.io/) - read [this guide](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash) for installation instructions
 - [`ninja`](https://ninja-build.org/)
+
+When installing GCC/G++ 11, make sure to read [this guide](https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-20-04-lts-focal-fossa) and have GCC/G++ 11 set as the desired version. This repository also requires `gcc-11-i686-linux-gnu` (and its G++ equivalent) to support 32-bit architectures, please make sure those are installed and in the right location.
 
 ## Building
 
@@ -54,7 +56,7 @@ cmake .. --preset default
 ninja
 ```
 
-To run the lifter, simply do `./basic_lifter <BINARY_PATH>`.
+To run the lifter, simply do `./basic_lifter <BINARY_PATH>`, which emits the LLVM IR to STDOUT by default.
 
 ## Testing
 
