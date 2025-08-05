@@ -1,13 +1,16 @@
 #include <lifter/SimpleTraceManager.hpp>
 
-SimpleTraceManager::SimpleTraceManager(std::vector<X86Procedure> funcs) {
+SimpleTraceManager::SimpleTraceManager(std::vector<X86Procedure> procs,
+                                       std::unique_ptr<llvm::Module> &module)
+    : module(module) {
     this->memory = Memory();
 
-    for (X86Procedure func : funcs) {
-        this->names[func.address] = func.name;
-        
-        for (uint64_t i = 0; i < func.size; i++) {
-            this->memory[func.address + i] = func.bytes[i];
+    for (X86Procedure proc : procs) {
+        // Initialise names and corresponding LLVM functions
+        this->names[proc.address] = proc.name;
+
+        for (uint64_t i = 0; i < proc.size; i++) {
+            this->memory[proc.address + i] = proc.bytes[i];
         }
     }
 }
@@ -31,8 +34,12 @@ void SimpleTraceManager::SetLiftedTraceDefinition(uint64_t addr,
 //
 // NOTE: This is permitted to return a function from an arbitrary module.
 llvm::Function *SimpleTraceManager::GetLiftedTraceDeclaration(uint64_t addr) {
+    auto names_it = names.find(addr);
     auto trace_it = traces.find(addr);
-    if (trace_it != traces.end()) {
+
+    if (names_it != names.end()) {
+        return this->module->getFunction(TraceName(addr));
+    } else if (trace_it != traces.end()) {
         return trace_it->second;
     } else {
         return nullptr;
@@ -43,7 +50,13 @@ llvm::Function *SimpleTraceManager::GetLiftedTraceDeclaration(uint64_t addr) {
 //
 // NOTE: This is permitted to return a function from an arbitrary module.
 llvm::Function *SimpleTraceManager::GetLiftedTraceDefinition(uint64_t addr) {
-    return GetLiftedTraceDeclaration(addr);
+    auto trace_it = traces.find(addr);
+
+    if (trace_it != traces.end()) {
+        return trace_it->second;
+    } else {
+        return nullptr;
+    }
 }
 
 // Try to read an executable byte of memory. Returns `true` of the byte
@@ -51,6 +64,7 @@ llvm::Function *SimpleTraceManager::GetLiftedTraceDefinition(uint64_t addr) {
 // pointed to by `byte` with the read value.
 bool SimpleTraceManager::TryReadExecutableByte(uint64_t addr, uint8_t *byte) {
     auto byte_it = memory.find(addr);
+    
     if (byte_it != memory.end()) {
         *byte = byte_it->second;
         return true;
