@@ -1,11 +1,11 @@
 #pragma once
 
-#include <optional>
 #include <string>
+#include <vector>
 
 #include <elfio/elfio.hpp>
 
-struct X86FunctionMetadata {
+struct X86ProcedureMetadata {
     std::string name;
     uint64_t address;
     uint64_t size;
@@ -13,11 +13,20 @@ struct X86FunctionMetadata {
 
 /// @brief Contains the raw code for an x86 function, which includes
 /// the bytes of the function, how big the function is, and the address
-struct X86Function {
+struct X86Procedure {
     std::string name;
     uint64_t address;
     uint64_t size;
-    const char* bytes;
+    const char *bytes;
 };
 
-std::optional<std::vector<X86Function>> getFunctionLocations(std::string fname);
+class X86Reader {
+  public:
+    X86Reader(ELFIO::elfio &_reader) : reader(_reader) {}
+
+    ELFIO::Elf64_Addr GetEntry();
+    std::vector<X86Procedure> GetProcedures();
+
+  private:
+    ELFIO::elfio &reader;
+};

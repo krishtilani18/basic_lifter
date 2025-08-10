@@ -1,13 +1,17 @@
 #pragma once
 
 #include <map>
+#include <reader/X86Reader.hpp>
 #include <remill/BC/TraceLifter.h>
 
 using Memory = std::map<uint64_t, uint8_t>;
 
 class SimpleTraceManager : public remill::TraceManager {
   public:
-    SimpleTraceManager(std::vector<X86Function> funcs);
+    SimpleTraceManager(std::vector<X86Procedure> funcs,
+                       std::unique_ptr<llvm::Module> &module);
+
+    llvm::Function *GetLiftedTraceDefinition(uint64_t addr) override;
 
   protected:
     std::string TraceName(uint64_t addr) override;
@@ -17,11 +21,12 @@ class SimpleTraceManager : public remill::TraceManager {
 
     llvm::Function *GetLiftedTraceDeclaration(uint64_t addr) override;
 
-    llvm::Function *GetLiftedTraceDefinition(uint64_t addr) override;
-
     bool TryReadExecutableByte(uint64_t addr, uint8_t *byte) override;
 
   public:
+    // Context
+    std::unique_ptr<llvm::Module> &module;
+
     // Metadata
     Memory memory;
     std::unordered_map<uint64_t, std::string> names;

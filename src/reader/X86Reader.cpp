@@ -1,29 +1,20 @@
-#include <iomanip>
-#include <optional>
-#include <string>
+#include <reader/X86Reader.hpp>
 
-#include <elfio/elfio.hpp>
+ELFIO::Elf64_Addr X86Reader::GetEntry() {
+    return this->reader.get_entry();
+}
 
-#include <elf.hpp>
-
-std::optional<std::vector<X86Function>>
-getFunctionLocations(std::string fname) {
-    ELFIO::elfio reader;
-
-    if (!reader.load(fname)) {
-        return std::nullopt;
-    }
-
-    std::vector<X86FunctionMetadata> metadata;
-    std::vector<X86Function> functions;
-    auto sections = reader.sections;
+std::vector<X86Procedure> X86Reader::GetProcedures() {
+    std::vector<X86ProcedureMetadata> metadata;
+    std::vector<X86Procedure> functions;
+    auto sections = this->reader.sections;
 
     for (int i = 0; i < sections.size(); ++i) {
         ELFIO::section *psec = sections[i];
 
         // Find symbol table (always before code)
         if (psec->get_type() == ELFIO::SHT_SYMTAB) {
-            const ELFIO::symbol_section_accessor symbols(reader, psec);
+            const ELFIO::symbol_section_accessor symbols(this->reader, psec);
 
             for (unsigned int j = 0; j < symbols.get_symbols_num(); ++j) {
                 std::string name;
@@ -38,7 +29,7 @@ getFunctionLocations(std::string fname) {
                                    section_index, other);
 
                 if (type == ELFIO::STT_FUNC && size != 0) {
-                    X86FunctionMetadata f_metadata{name, value, size};
+                    X86ProcedureMetadata f_metadata{name, value, size};
                     metadata.push_back(f_metadata);
                 }
             }
@@ -57,12 +48,12 @@ getFunctionLocations(std::string fname) {
                 memcpy(bytes, text + f_metadata.address - offset,
                        f_metadata.size);
 
-                X86Function function = {f_metadata.name, f_metadata.address,
+                X86Procedure function = {f_metadata.name, f_metadata.address,
                                         f_metadata.size, bytes};
                 functions.push_back(function);
             }
         }
     }
 
-    return std::optional{functions};
+    return functions;
 }

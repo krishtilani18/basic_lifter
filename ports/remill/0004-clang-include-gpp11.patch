@@ -20,8 +20,8 @@ index 884cf2f..636ec33 100644
      DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
 -    BCFLAGS "${arch_flags}" "-std=${required_cpp_standard}"
 -    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
-+    BCFLAGS "--gcc-install-dir=/usr/lib/gcc/i686-linux-gnu/11" "${arch_flags}" "-std=${required_cpp_standard}"
-+    INCLUDEDIRECTORIES "/usr/lib/gcc/i686-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
++    BCFLAGS "--gcc-install-dir=/usr/lib/gcc-cross/i686-linux-gnu/11" "${arch_flags}" "-std=${required_cpp_standard}"
++    INCLUDEDIRECTORIES "/usr/lib/gcc-cross/i686-linux-gnu/11/include" "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
      INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
      ARCH arm
    )
@@ -78,8 +78,8 @@ index 170e2e9..30841e5 100644
  
    if (address_bit_size EQUAL 32)
      set(x86_arch "i386")
-+    set(gcc_install_dir "/usr/lib/gcc/i686-linux-gnu/11")
-+    set(include_dir "/usr/lib/gcc/i686-linux-gnu/11/include")
++    set(gcc_install_dir "/usr/lib/gcc-cross/i686-linux-gnu/11")
++    set(include_dir "/usr/lib/gcc-cross/i686-linux-gnu/11/include")
    else()
      set(x86_arch "x86_64")
 +    set(gcc_install_dir "/usr/lib/gcc/x86_64-linux-gnu/11")
