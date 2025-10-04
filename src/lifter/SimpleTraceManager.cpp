@@ -37,6 +37,9 @@ void SimpleTraceManager::SetLiftedTraceDefinition(uint64_t addr,
                                                   llvm::Function *lifted_func) {
     bool isExternal = this->names[addr].second;
 
+    // External functions are not defined in the binary (because of
+    // dynamic linking) - thus, they should not have traces, and are
+    // defined in a separate `externals` file
     if (isExternal) {
         return;
     }
