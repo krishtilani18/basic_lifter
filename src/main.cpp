@@ -13,9 +13,46 @@
 #include <lifter/SimpleTraceManager.hpp>
 #include <reader/X86Reader.hpp>
 
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+
 // Right now, our lifter extracts code sections from x86 binaries
 // and converts them into chunks of instructions, which can (in future)
 // then be placed into LLVM functions.
+
+void LiftGlobals(llvm::LLVMContext &ctx, llvm::Module *module,
+                 const std::vector<X86Global> &globals) {
+    for (auto &g : globals) {
+        llvm::ArrayType *arrTy =
+            llvm::ArrayType::get(llvm::Type::getInt8Ty(ctx), g.size);
+
+        // Create constant initializer for the bytes
+        llvm::Constant *init = llvm::ConstantDataArray::getRaw(
+            llvm::StringRef(g.bytes, g.size),
+            g.size,  // NumElements
+            llvm::Type::getInt8Ty(ctx)
+        );
+
+        // Create a global variable in the module
+        auto *gv = new llvm::GlobalVariable(
+            *module,
+            arrTy,
+            true,  // constant
+            llvm::GlobalValue::PrivateLinkage,
+            init,
+            "global_" + g.name
+        );
+
+        gv->setSection(g.section);
+        gv->setAlignment(llvm::MaybeAlign(1));
+    }
+}
+
+
+
+
 int main(int argc, char *argv[]) {
     /// === EXTRACT PROCEDURE LOCATIONS ===
     ELFIO::elfio elfReader;
@@ -26,6 +63,7 @@ int main(int argc, char *argv[]) {
 
     X86Reader reader(elfReader);
     auto procs = reader.GetProcedures();
+    auto globals = reader.GetGlobals();
 
     /// === LIFT X86 PROCEDURES INTO LLVM IR ===
     llvm::LLVMContext context;
@@ -36,6 +74,7 @@ int main(int argc, char *argv[]) {
     auto arch = remill::Arch::Get(context, os_name, arch_name);
     auto module = remill::LoadArchSemantics(arch.get());
 
+    
     // Declare empty functions in module first, which the lifter
     // can see (for recursive functions)
     for (X86Procedure proc : procs) {
@@ -55,10 +94,12 @@ int main(int argc, char *argv[]) {
     // Optimize the functions we lifted
     remill::OptimizationGuide guide = {};
     remill::OptimizeModule(arch, module, manager.traces, guide);
-
+    
     // Move lifted functions into new module
     llvm::Module destModule("lifted_code", context);
     arch->PrepareModuleDataLayout(&destModule);
+    
+    LiftGlobals(context, &destModule, globals);    
 
     for (auto trace : manager.traces) {
         remill::MoveFunctionIntoModule(trace.second, &destModule);

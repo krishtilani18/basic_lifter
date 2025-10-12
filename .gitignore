@@ -5,6 +5,7 @@ out/
 cmake-build-*/
 .cache/
 vcpkg_installed/
+ports/remill/0004-clang-include-gpp11.patch
 
 # User specific settings
 CMakeUserPresets.json

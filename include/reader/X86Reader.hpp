@@ -11,6 +11,15 @@ struct X86ProcedureMetadata {
     uint64_t size;
 };
 
+struct X86Global {
+    std::string name;
+    ELFIO::Elf64_Addr address;
+    ELFIO::Elf_Xword size;
+    const char *bytes;
+    std::string section;
+};
+
+
 /// @brief Contains the raw code for an x86 function, which includes
 /// the bytes of the function, how big the function is, and the address
 struct X86Procedure {
@@ -26,6 +35,7 @@ class X86Reader {
 
     ELFIO::Elf64_Addr GetEntry();
     std::vector<X86Procedure> GetProcedures();
+    std::vector<X86Global> GetGlobals();   
 
   private:
     ELFIO::elfio &reader;
