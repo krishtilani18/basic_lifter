@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int main() {
     int result = 1;
 
@@ -5,5 +7,5 @@ int main() {
         result *= i;
     }
 
-    return result;
+    printf("%d\n", result);
 }

@@ -18,10 +18,6 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 
-// Right now, our lifter extracts code sections from x86 binaries
-// and converts them into chunks of instructions, which can (in future)
-// then be placed into LLVM functions.
-
 void LiftGlobals(llvm::LLVMContext &ctx, llvm::Module *module,
                  const std::vector<X86Global> &globals) {
     for (auto &g : globals) {
@@ -50,10 +46,21 @@ void LiftGlobals(llvm::LLVMContext &ctx, llvm::Module *module,
     }
 }
 
-
-
-
+// Right now, our lifter extracts code sections from x86 binaries
+// and converts them into chunks of instructions, which can (in future)
+// then be placed into LLVM functions.
 int main(int argc, char *argv[]) {
+    /// === COMMAND LINE ARGUMENTS ===
+
+    // Manually declare our binary entry point in hex.
+    // In C environments, `main` is not the first function that is
+    // called in machine code - the real entry point is `_start`, which
+    // sets up other things before calling `main`. Extracting out the
+    // entry point that we actually care about (the address of `main`)
+    // is annoying, so we require readers to manually figure it out
+    // by reading the output of a tool like `objdump`.
+    ELFIO::Elf64_Addr entryPoint = std::stoi(argv[2], 0, 16);
+
     /// === EXTRACT PROCEDURE LOCATIONS ===
     ELFIO::elfio elfReader;
 
@@ -64,14 +71,15 @@ int main(int argc, char *argv[]) {
     X86Reader reader(elfReader);
     auto procs = reader.GetProcedures();
     auto globals = reader.GetGlobals();
+    auto externalProcs = reader.GetExternalProcedures();
 
     /// === LIFT X86 PROCEDURES INTO LLVM IR ===
     llvm::LLVMContext context;
-    auto os_name = remill::GetOSName(REMILL_OS);
-    auto arch_name = remill::GetArchName(REMILL_ARCH);
+    auto osName = remill::GetOSName(REMILL_OS);
+    auto archName = remill::GetArchName(REMILL_ARCH);
 
     // Creating the arch object as a unique_ptr
-    auto arch = remill::Arch::Get(context, os_name, arch_name);
+    auto arch = remill::Arch::Get(context, osName, archName);
     auto module = remill::LoadArchSemantics(arch.get());
 
     
@@ -81,8 +89,14 @@ int main(int argc, char *argv[]) {
         arch->DeclareLiftedFunction("LIFTED." + proc.name, module.get());
     }
 
+    for (X86ExternalProcedure proc : externalProcs) {
+        llvm::Function::Create(arch->LiftedFunctionType(),
+                               llvm::GlobalValue::ExternalLinkage,
+                               "EXTERNAL." + proc.name, module.get());
+    }
+
     // Initialise lifter
-    SimpleTraceManager manager(procs, module);
+    SimpleTraceManager manager(procs, externalProcs, module);
     auto lifter = remill::TraceLifter(arch.get(), manager);
 
     // Lift the program, using the function info we got from elf.hpp
@@ -107,7 +121,6 @@ int main(int argc, char *argv[]) {
 
     /// === CALL ENTRY POINT ===
     auto i32Type = llvm::Type::getInt32Ty(context);
-    auto i64Type = llvm::Type::getInt64Ty(context);
 
     // Create main function
     const auto mainFuncType = llvm::FunctionType::get(i32Type, false);
@@ -125,8 +138,6 @@ int main(int argc, char *argv[]) {
         llvm::GlobalValue::InitialExecTLSModel);
 
     // Create program counter
-    auto entryPoint = reader.GetEntry();
-
     auto wordType = llvm::Type::getIntNTy(
         context, static_cast<unsigned>(arch->address_size));
     auto pc = llvm::ConstantInt::get(wordType, entryPoint);
@@ -138,12 +149,11 @@ int main(int argc, char *argv[]) {
     auto memoryType = arch->MemoryPointerType();
 
     auto initMemoryFunc = destModule.getOrInsertFunction(
-        "__lifter_init_memory",
-        llvm::FunctionType::get(memoryType, false));
+        "__lifter_init_memory", llvm::FunctionType::get(memoryType, false));
 
     auto memoryPtr = ir.CreateCall(initMemoryFunc);
 
-    // Call 
+    // Call
     std::array<llvm::Value *, remill::kNumBlockArgs> args;
     args[remill::kStatePointerArgNum] = statePtr;
     args[remill::kPCArgNum] = pc;
