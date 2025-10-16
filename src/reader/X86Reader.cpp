@@ -61,48 +61,82 @@ std::vector<X86Procedure> X86Reader::GetProcedures() {
 std::vector<X86Global> X86Reader::GetGlobals() {
     std::vector<X86Global> globals;
 
-    // Use size/type compatible with ELFIO::Sections
     unsigned int num_sections = this->reader.sections.size();
     for (unsigned int si = 0; si < num_sections; ++si) {
         ELFIO::section* psec = this->reader.sections[si];
         if (!psec) continue;
 
-        // Find symbol table sections
-        if (psec->get_type() != ELFIO::SHT_SYMTAB) continue;
+        const char* sec_data = psec->get_data();
+        if (!sec_data) continue;
 
-        ELFIO::symbol_section_accessor symbols(this->reader, psec);
-        for (unsigned i = 0; i < symbols.get_symbols_num(); ++i) {
-            std::string name;
-            ELFIO::Elf64_Addr value;
-            ELFIO::Elf_Xword size;
-            unsigned char bind = 0, type = 0, other = 0;
-            ELFIO::Elf_Half index = 0;
+        ELFIO::Elf_Xword sec_size = psec->get_size();
 
-            symbols.get_symbol(i, name, value, size, bind, type, index, other);
+        std::string sec_name = psec->get_name();
+        unsigned flags = psec->get_flags();
 
-            // Filter for defined global data symbols
-            if ((bind == ELFIO::STB_GLOBAL || bind == ELFIO::STB_WEAK) &&
-                (type == ELFIO::STT_OBJECT || type == ELFIO::STT_NOTYPE) &&
-                index != ELFIO::SHN_UNDEF && size > 0) {
+        // Only include .data/.bss globals from symbols
+        if (psec->get_type() == ELFIO::SHT_SYMTAB) {
+            ELFIO::symbol_section_accessor symbols(this->reader, psec);
+            for (unsigned i = 0; i < symbols.get_symbols_num(); ++i) {
+                std::string name;
+                ELFIO::Elf64_Addr value;
+                ELFIO::Elf_Xword size;
+                unsigned char bind = 0, type = 0, other = 0;
+                ELFIO::Elf_Half index = 0;
 
-                // `index` is the section index for this symbol; obtain that section
+                symbols.get_symbol(i, name, value, size, bind, type, index, other);
+
+                if (index == ELFIO::SHN_UNDEF || size == 0) continue;
                 if (index >= this->reader.sections.size()) continue;
+
                 ELFIO::section* data_sec = this->reader.sections[index];
                 if (!data_sec) continue;
 
-                const char* sec_data = data_sec->get_data();
-                if (!sec_data) continue;
+                const char* data_ptr = data_sec->get_data();
+                if (!data_ptr) continue;
 
                 ELFIO::Elf64_Off offset = static_cast<ELFIO::Elf64_Off>(value - data_sec->get_address());
                 if (offset + size > data_sec->get_size()) continue;
 
-                // Create X86Global; bytes points into section data (do not free)
+                bool is_global_data = (bind == ELFIO::STB_GLOBAL || bind == ELFIO::STB_WEAK) &&
+                                      (type == ELFIO::STT_OBJECT || type == ELFIO::STT_NOTYPE);
+
+                if (is_global_data &&
+                    (data_sec->get_name() == ".data" || data_sec->get_name() == ".bss")) {
+
+                    X86Global g;
+                    g.name = name;
+                    g.address = value;
+                    g.size = size;
+                    g.bytes = data_ptr + offset;
+                    g.section = data_sec->get_name();
+
+                    globals.push_back(g);
+                }
+            }
+        }
+
+    if ((flags & ELFIO::SHF_ALLOC) && !(flags & ELFIO::SHF_WRITE) &&
+        sec_name == ".rodata") {
+
+        std::vector<char> printable_bytes;
+        for (ELFIO::Elf_Xword i = 0; i < sec_size; ++i) {
+            unsigned char c = sec_data[i];
+            if (isprint(c)) {
+                printable_bytes.push_back(c);
+            }
+        }
+
+            if (!printable_bytes.empty()) {
+                char* filtered_data = new char[printable_bytes.size()];
+                std::memcpy(filtered_data, printable_bytes.data(), printable_bytes.size());
+
                 X86Global g;
-                g.name = name;
-                g.address = value;
-                g.size = size;
-                g.bytes = sec_data + offset;         // pointer into section data
-                g.section = data_sec->get_name();
+                g.name = "rodata_" + std::to_string(printable_bytes.size()); 
+                g.address = psec->get_address();          
+                g.size = printable_bytes.size();
+                g.bytes = filtered_data;                 
+                g.section = sec_name;
 
                 globals.push_back(g);
             }
