@@ -21,5 +21,5 @@ int main() {
     struct bar inner = {5, 6, further_inner};
     struct foo result = {7, 8, inner};
 
-    printf("%d\n", result.third.gamma.values[0]);
+    printf("%d\n", result.third.gamma.values[1]);
 }
