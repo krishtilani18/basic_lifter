@@ -20,9 +20,9 @@ uint32_t __remill_read_memory_32(LifterMemory *memory, addr_t addr) {
     uint32_t result = 0;
 
     for (size_t offset = 0; offset < 4; offset++) {
-        auto byteIt = memory->find(addr + offset);
+        auto byteIt = memory->memory.find(addr + offset);
 
-        if (byteIt == memory->end()) {
+        if (byteIt == memory->memory.end()) {
             return 0;
         }
 
@@ -40,9 +40,9 @@ uint64_t __remill_read_memory_64(LifterMemory *memory, addr_t addr) {
     uint64_t result = 0;
 
     for (size_t offset = 0; offset < 8; offset++) {
-        auto byteIt = memory->find(addr + offset);
+        auto byteIt = memory->memory.find(addr + offset);
 
-        if (byteIt == memory->end()) {
+        if (byteIt == memory->memory.end()) {
             return 0;
         }
 
@@ -62,7 +62,7 @@ LifterMemory *__remill_write_memory_32(LifterMemory *memory, addr_t addr,
         size_t shift = (3 - offset) * 8;
         uint32_t shifted = val >> shift;
 
-        (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
+        memory->memory[addr + offset] = (uint8_t)(shifted & 0xff);
     }
 
     return memory;
@@ -74,7 +74,7 @@ LifterMemory *__remill_write_memory_64(LifterMemory *memory, addr_t addr,
         size_t shift = (7 - offset) * 8;
         uint64_t shifted = val >> shift;
 
-        (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
+        memory->memory[addr + offset] = (uint8_t)(shifted & 0xff);
     }
 
     return memory;

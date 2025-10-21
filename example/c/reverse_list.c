@@ -8,17 +8,31 @@ struct node {
 };
 
 struct node *reverse(struct node *head);
-struct node *strings_to_list(int len, char *strings[]);
-void print_list(struct node *head);
 
-// DO NOT CHANGE THIS MAIN FUNCTION
+int main() {
+  // Create list 4->3->2->1->0->NULL
+  struct node *head = NULL;
 
-int main(int argc, char *argv[]) {
-  // create linked list from command line arguments
-  struct node *head = strings_to_list(argc - 1, &argv[1]);
+  for (int i = 0; i < 5; i++) {
+    struct node *new_head = malloc(sizeof(struct node));
+    new_head->next = head;
+    new_head->data = i;
+    
+    head = new_head;
+  }
 
-  struct node *new_head = reverse(head);
-  print_list(new_head);
+  // Reverse list
+  struct node *reversed = reverse(head);
+
+  // Print elements in list
+  while (reversed != NULL) {
+    printf("%d\n", (__int64_t) reversed);
+    printf("%d\n", reversed->data);
+    
+    struct node *next = reversed->next;
+    free(reversed);
+    reversed = next;
+  }
 
   return 0;
 }
@@ -42,34 +56,4 @@ struct node *reverse(struct node *head) {
   }
 
   return previous;
-}
-
-// DO NOT CHANGE THIS FUNCTION
-// create linked list from array of strings
-struct node *strings_to_list(int len, char *strings[]) {
-  struct node *head = NULL;
-  for (int i = len - 1; i >= 0; i = i - 1) {
-    struct node *n = malloc(sizeof(struct node));
-    assert(n != NULL);
-    n->next = head;
-    n->data = atoi(strings[i]);
-    head = n;
-  }
-  return head;
-}
-
-// DO NOT CHANGE THIS FUNCTION
-// print linked list
-void print_list(struct node *head) {
-  printf("[");
-
-  for (struct node *n = head; n != NULL; n = n->next) {
-    // If you're getting an error here,
-    // you have returned an invalid list
-    printf("%d", n->data);
-    if (n->next != NULL) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
 }
