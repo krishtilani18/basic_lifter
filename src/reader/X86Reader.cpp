@@ -84,7 +84,6 @@ std::vector<X86ExternalProcedure> X86Reader::GetExternalProcedures() {
         const ELFIO::relocation_section_accessor symbols(this->reader, psec);
 
         for (unsigned int j = 0; j < symbols.get_entries_num(); j++) {
-            ELFIO::Elf_Xword index;
             ELFIO::Elf64_Addr offset;
             ELFIO::Elf64_Addr symbolValue;
             std::string symbolName;
@@ -124,9 +123,10 @@ std::vector<X86ExternalProcedure> X86Reader::GetExternalProcedures() {
             unsigned int callsite = psec->get_address() + (j * 0x10);
             unsigned int jumpAddress = callsite + 0xa;
 
-            // x86 is little-endian
-            unsigned int offset =
-                (((uint8_t) psec->get_data()[7]) << 8) + ((uint8_t) psec->get_data()[6]);
+            // Offset address is stored on bytes 6 and 7, little-endian
+            uint8_t smallByte = (uint8_t)psec->get_data()[j * 0x10 + 0x6];
+            uint8_t largeByte = (uint8_t)psec->get_data()[j * 0x10 + 0x7];
+            unsigned int offset = (largeByte << 8) + smallByte;
 
             auto found = jumps.find(jumpAddress + offset);
 
