@@ -40,7 +40,7 @@ LifterMemory *EXTERNAL___isoc99_scanf(State *state, addr_t program_counter,
 
     // Scanning a long long int, write 8 bytes
     for (size_t offset = 0; offset < 8; offset++) {
-        size_t shift = (7 - offset) * 8;
+        size_t shift = offset * 8;
         uint64_t shifted = unsignedValue >> shift;
 
         (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);

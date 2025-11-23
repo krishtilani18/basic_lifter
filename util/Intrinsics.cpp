@@ -28,7 +28,7 @@ uint32_t __remill_read_memory_32(LifterMemory *memory, addr_t addr) {
 
         uint32_t byte = (uint32_t)(*byteIt).second;
 
-        size_t shift = (3 - offset) * 8;
+        size_t shift = offset * 8;
         uint32_t shifted = byte << shift;
         result |= shifted;
     }
@@ -48,7 +48,7 @@ uint64_t __remill_read_memory_64(LifterMemory *memory, addr_t addr) {
 
         uint64_t byte = (uint64_t)(*byteIt).second;
 
-        size_t shift = (7 - offset) * 8;
+        size_t shift = offset * 8;
         uint64_t shifted = byte << shift;
         result |= shifted;
     }
@@ -59,7 +59,7 @@ uint64_t __remill_read_memory_64(LifterMemory *memory, addr_t addr) {
 LifterMemory *__remill_write_memory_32(LifterMemory *memory, addr_t addr,
                                        uint32_t val) {
     for (size_t offset = 0; offset < 4; offset++) {
-        size_t shift = (3 - offset) * 8;
+        size_t shift = offset * 8;
         uint32_t shifted = val >> shift;
 
         (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
@@ -71,7 +71,7 @@ LifterMemory *__remill_write_memory_32(LifterMemory *memory, addr_t addr,
 LifterMemory *__remill_write_memory_64(LifterMemory *memory, addr_t addr,
                                        uint64_t val) {
     for (size_t offset = 0; offset < 8; offset++) {
-        size_t shift = (7 - offset) * 8;
+        size_t shift = offset * 8;
         uint64_t shifted = val >> shift;
 
         (*memory)[addr + offset] = (uint8_t)(shifted & 0xff);
